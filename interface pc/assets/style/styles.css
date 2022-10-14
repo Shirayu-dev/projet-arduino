@@ -1,3 +1,19 @@
-/* styles.css */
+body {
+    background-color: #222;
+    color: #eee;
+    width: 99%;
+    height: 98vh;
+}
 
-/* Add styles here to customize the appearance of your app */
+body.wait {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+body.mtnc {
+    display: grid;
+    column-gap: 100px;
+    row-gap: 100px;
+    grid-template-columns: repeat(2, minmax(200px, 1fr));
+}
