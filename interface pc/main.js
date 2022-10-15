@@ -60,7 +60,7 @@ async function createWindow() {
 		} else mainWindow.webContents.send("disconnected");
 	});
 
-	mainWindow.loadFile(getFile("wait.html"));
+	mainWindow.loadFile(getFile("mtnc.html"));
 };
 
 //-------------------------------------------------Lancement de l'app-------------------------------------------------

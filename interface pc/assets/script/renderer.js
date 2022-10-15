@@ -10,6 +10,7 @@ let currentMode = document.body.className.replace(" light", "");
 const lightMode = () => document.body.classList.contains("light");
 const color = () => lightMode() ? "#121212" : "#eee";
 const dataColor = (bg) => lightMode() ? "#000" : bg ? "rgba(0,255,255,0.7)" : "#0ff";
+const fillColor = () => lightMode() ? "rgba(0,0,0,0.1)" : "rgba(0,255,255,0.1)";
 
 if (currentMode === "wait") {
     let message = document.getElementById("msg");
@@ -43,7 +44,9 @@ if (currentMode === "mtnc") {
                     label: "data",
                     data: [3, 2, 3],
                     borderColor: dataColor(true),
-                    backgroundColor: dataColor(false),
+                    pointBackgroundColor: dataColor(false),
+                    fill: true,
+                    backgroundColor: fillColor()
                 }]
             },
             options: {
