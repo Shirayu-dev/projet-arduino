@@ -7,37 +7,63 @@
     <title>Mode maintenance</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
   </head>
-  <body class="mtnc light">
-    <h1 class="mtnc-title">Mode maintenance - Données en temps réel des capteurs</h1>
-    <div class="real-time-data">
-      <div class="left">
-        <div class="row">
-          <h1>Luminosité :</h1>
-          <canvas id="lightChart" height="320px"></canvas>
-        </div>
-        <div class="row">
-          <h1>Humidité :</h1>
-          <canvas id="hydroChart" height="320px"></canvas>
-        </div>
-        <div class="row">
-          <h1>Pression :</h1>
-          <canvas id="pressionChart" height="320px"></canvas>
-        </div>
-        <div class="row">
-          <h1>Température :</h1>
-          <canvas id="tempChart" height="320px"></canvas>
-        </div>
-      </div>
-      <div class="right">
-        <div class="row">
+  <body class="mtnc">
+    <div class="mtnc-title">
+      <h1>Mode maintenance - Données en temps réel des capteurs</h1>
+    </div>
+    <div class="top">
+      <div class="map-zone">
           <h1>Localisation :</h1>
           <!--https://www.maps.ie/create-google-map/-->
           <div class="map">
             <iframe width="100%" height="100%" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://maps.google.com/maps?width=100%25&amp;height=100%25&amp;hl=en&amp;q=49.278849,%20-0.158896&amp;t=k&amp;z=5&amp;ie=UTF8&amp;iwloc=B&amp;output=embed"></iframe>
           </div>
-        </div>
-        <div class="row">
-          <h1>Informations systèmes du module météo :</h1>
+      </div>
+      <div class="system-infos">
+        <h1>Informations systèmes du module météo :</h1>
+        <p><strong>Numéro de série :</strong> Lorem, ipsum dolor.</p>
+        <p><strong>Numéro de version du programme :</strong> Lorem, ipsum dolor.</p>
+        <p><strong>Lorem ipsum dolor sit amet. :</strong> Lorem, ipsum dolor.</p>
+        <p><strong>Lorem, ipsum dolor. :</strong> Lorem, ipsum dolor.</p>
+        <p><strong>Lorem ipsum dolor, sit amet consectetur adipisicing. :</strong> Lorem, ipsum dolor.</p>
+      </div>
+    </div>
+    <div class="bottom">
+      <div class="chart-datas">
+        <h1>
+          Évolution des mesures :
+        </h1>
+        <canvas id="globalChart" height="80px"></canvas>
+      </div>
+      <div class="realtime-datas">
+        <h1>
+          Mesures en temps réel :
+        </h1>
+        <div class="bars">
+          <div class="light">
+            <p class="title">Luminosité :</p>
+            <div class="bar" min="0" max="1023"> 
+              <div class="bar-color"></div>
+            </div>
+          </div>
+          <div class="hydro">
+            <p class="title">Humidité :</p>
+            <div class="bar" min="0" max="100"> 
+              <div class="bar-color"></div>
+            </div>
+          </div>
+          <div class="pression">
+            <p class="title">Pression :</p>
+            <div class="bar" min="850" max="1080"> 
+              <div class="bar-color"></div>
+            </div>
+          </div>
+          <div class="temp">
+            <p class="title">Température :</p>
+            <div class="bar" min="-10" max="60">
+              <div class="bar-color"></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
