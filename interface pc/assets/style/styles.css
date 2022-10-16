@@ -1,67 +1,196 @@
-body.light {
-    --white: #121212;
-    --black: #eee;
+* {
+    --black: #121212;
+    --white: #eee;
 }
 
 body {
-    --black: #121212;
-    --white: #eee;
-    background-color: var(--black);
-    color: var(--white);
-    width: 99%;
-    height: 95vh;
+    margin: 0;
     font-family: "Source Sans Pro";
 }
 
+/*      Page wait       */
+
 body.wait {
+    background-color: var(--black);
+    color: var(--white);
     display: flex;
     justify-content: center;
     align-items: center;
+    width: 99%;
+    height: 95vh;
 }
 
-body.mtnc .mtnc-title {
+/*      Page maintenance       */
+
+body.mtnc {
+    background-color: #deeaf6;
+    padding: 0 40px 40px 40px;
+    height: 92vh;
+}
+
+body.mtnc .mtnc-title h1 {
     text-align: center;
+    margin: 30px 0 40px 0;
 }
 
-body.mtnc .real-time-data {
-    height: 90%;
+body.mtnc .top {
     display: grid;
-    column-gap: 60px;
-    grid-template-columns: repeat(2, minmax(200px, 1fr));
-    position: relative;
-    top: -15px;
+    column-gap: 0;
+    grid-template-columns: 60% 40%;
+    height: 400px;
 }
 
-body.mtnc .real-time-data .left {
-    display: grid;
-    row-gap: 20px;
-    grid-template-columns: repeat(1, minmax(200px, 1fr));
-    padding-left: 10px;
+body.mtnc .top h1,
+body.mtnc .bottom h1 {
+    margin: 0;
+    font-size: 28px;
+    margin-bottom: 10px;
 }
 
-body.mtnc .real-time-data .right {
-    display: grid;
-    row-gap: 20px;
-    grid-template-columns: repeat(1, minmax(200px, 1fr));
-    padding-right: 10px;
+body.mtnc .top .map-zone,
+body.mtnc .top .system-infos {
+    padding: 20px;
+    border-radius: 10px;
 }
 
-body.mtnc .real-time-data .row .map {
-    position: absolute;
-    width: 47%;
-    height: 355px;
-    transform: translateY(-20px);
+body.mtnc .map-zone {
+    background-color: #ffffff;
+    margin-right: 30px;
+}
+
+body.mtnc .system-infos {
+    background-color: #f7fbfe;
+}
+
+body.mtnc .map-zone .map {
+    width: 100%;
+    height: calc(100% - 42px);
     border-radius: 8px;
     overflow: hidden;
 }
 
-body.mtnc .real-time-data .row canvas {
-    position: absolute;
-    background-color: var(--black);
-    border-radius: 8px;
-    border: solid 2px var(--white);
-    padding: 5px;
+body.mtnc .bottom {
+    margin-top: 30px;
+    border-radius: 10px;
+    overflow: hidden;
+    display: grid;
+    column-gap: 0;
+    grid-template-columns: 65% 35%;
+    height: 340px;
+}
+
+body.mtnc .bottom .chart-datas,
+body.mtnc .bottom .realtime-datas {
+    padding: 20px;
+}
+
+body.mtnc .bottom .chart-datas {
+    background-color: #ffffff;
+}
+
+body.mtnc .bottom .realtime-datas {
+    background-color: #f7fbfe;
+}
+
+body.mtnc .bottom .realtime-datas .bars {
+    display: grid;
+    column-gap: 10px;
+    grid-template-columns: 25% 25% 25% 25%;
+}
+
+body.mtnc .bottom .realtime-datas .bars .bar {
+    height: 200px;
+    width: 30px;
+    display: flex;
+    align-items: flex-end;
+    background-color: #fff;
+    position: relative;
+}
+
+body.mtnc .bottom .realtime-datas .bars .bar .bar-color {
     width: 100%;
-    height: 50px;
-    transform: translateY(-20px);
+}
+
+body.mtnc .bottom .realtime-datas .bars .light .bar .bar-color {
+    height: 83%;
+    background-color: #5b94fb88;
+}
+
+body.mtnc .bottom .realtime-datas .bars .hydro .bar .bar-color {
+    height: 25%;
+    background-color: #24cbdd88;
+}
+
+body.mtnc .bottom .realtime-datas .bars .pression .bar .bar-color {
+    height: 17%;
+    background-color: #55dc7d88;
+}
+
+body.mtnc .bottom .realtime-datas .bars .temp .bar .bar-color {
+    height: 25%;
+    background-color: #ff000088;
+}
+
+body.mtnc .bottom .realtime-datas .bars .light .bar::before {
+    content: attr(max) " lx";
+    position: absolute;
+    top: 0;
+    left: calc(100% + 5px);
+    width: 300%;
+}
+
+body.mtnc .bottom .realtime-datas .bars .light .bar::after {
+    content: attr(min) " lx";
+    position: absolute;
+    bottom: 0;
+    left: calc(100% + 5px);
+    width: 300%;
+}
+
+body.mtnc .bottom .realtime-datas .bars .hydro .bar::before {
+    content: attr(max) " %";
+    position: absolute;
+    top: 0;
+    left: calc(100% + 5px);
+    width: 300%;
+}
+
+body.mtnc .bottom .realtime-datas .bars .hydro .bar::after {
+    content: attr(min) " %";
+    position: absolute;
+    bottom: 0;
+    left: calc(100% + 5px);
+    width: 300%;
+}
+
+body.mtnc .bottom .realtime-datas .bars .pression .bar::before {
+    content: attr(max) " hPa";
+    position: absolute;
+    top: 0;
+    left: calc(100% + 5px);
+    width: 300%;
+}
+
+body.mtnc .bottom .realtime-datas .bars .pression .bar::after {
+    content: attr(min) " hPa";
+    position: absolute;
+    bottom: 0;
+    left: calc(100% + 5px);
+    width: 300%;
+}
+
+body.mtnc .bottom .realtime-datas .bars .temp .bar::before {
+    content: attr(max) " °C";
+    position: absolute;
+    top: 0;
+    left: calc(100% + 5px);
+    width: 300%;
+}
+
+body.mtnc .bottom .realtime-datas .bars .temp .bar::after {
+    content: attr(min) " °C";
+    position: absolute;
+    bottom: 0;
+    left: calc(100% + 5px);
+    width: 300%;
 }
