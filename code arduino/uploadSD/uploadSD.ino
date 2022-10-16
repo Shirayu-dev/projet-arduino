@@ -4,14 +4,17 @@
 #include <RTClib.h> // Pour la gestion de l'horloge RTC
 #include <Wire.h> // Pour la communication I2C
 #include <TimeLib.h> // Pour la gestion du temps
+#include <ChainableLED.h>
 
-// #include <DS1307RTC.h> // Pour la gestion de l'horloge RTC
-
-/* Broche CS de la carte SD */
-const byte SDCARD_CS_PIN = 4;
+ChainableLED rgbLED(5, 6, 1);
+byte maintenanceMode = false;
+byte ecoMode = false;
+const byte SDCARD_CS_PIN = 4; // Broche CS de la carte SD
 RTC_DS1307 rtc;
 SdFat SD;
 SdFile myFile;
+
+byte r,g,b; // A supprimer !!!
 
 void uploadSD(){
   char fileName[14];
@@ -26,7 +29,9 @@ void uploadSD(){
       Serial.println("Write OK");
     }
     else{
-      Serial.println("Write ERROR");
+      Serial.println("SD cart Full"); // Si la carte SD est pleine
+      // led
+      while (1);
     }
 
     Serial.println("File Size : " + String(myFile.fileSize())); // Pour le debug uniquement !! A retirer !!
@@ -48,26 +53,57 @@ void uploadSD(){
   }
 }
 
+void ledManager(){
+    while(!rtc.begin()) {
+        Serial.println("Erreur RTC");
+        rgbLED.setColorRGB(0, r, g, b);
+        delay(500);
+        rgbLED.setColorRGB(0, r, g, b);
+    }
+    while(!SD.begin(SDCARD_CS_PIN)) {
+        Serial.println(F("Erreur SD"));
+        rgbLED.setColorRGB(0, r, g, b);
+        delay(500);
+        rgbLED.setColorRGB(0, r, g, b);
+    }
+    // while(GPS) {
+    //   Serial.println(F("Erreur GPS"));
+    //   rgbLED.setColorRGB(0, r, g, b);
+    //   delay(500);
+    //   rgbLED.setColorRGB(0, r, g, b);
+    // }
+    // while(Accès capteur) { // Faudra aussi faire celle de la donnée incohérente
+    //   Serial.println(F("Erreur accès GPS"));
+    //   rgbLED.setColorRGB(0, r, g, b);
+    //   delay(500);
+    //   rgbLED.setColorRGB(0, r, g, b);
+    // }
+
+    if(maintenanceMode){ // en maintenance
+        rgbLED.setColorRGB(0, r, g, b);
+    }
+    else if(ecoMode){ // en éco
+        rgbLED.setColorRGB(0, r, g, b);
+    }
+    else{ // en standard
+        rgbLED.setColorRGB(0, r, g, b);
+    }
+}
+
 
 void setup() {
   Serial.begin(115200);
   Wire.begin();  //sets up the I2C
 
-
   // Initialisation de la carte SD
   pinMode(SDCARD_CS_PIN, OUTPUT);
   Serial.print(F("Init SD card... "));
-  if (!SD.begin(SDCARD_CS_PIN)) {
-    Serial.println(F("Card FAIL"));
+  if (SD.begin(SDCARD_CS_PIN)) {
+    Serial.println(F("Card OK"));
   }
-  Serial.println(F("Card OK"));
+  
+  ledManager();
 
-
-  // Initialisation de l'horloge RTC
-  while (!rtc.begin()) {
-    Serial.println("Attente du module RTC...");
-    delay(5000);
-  }
   if (!rtc.isrunning()) {
     rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
     Serial.println("Horloge du module RTC mise a jour");
@@ -75,13 +111,7 @@ void setup() {
 }
 
 void loop() {
-  if(!rtc.begin()) { // Serial.println(rtc.readSqwPinMode()); Permet de voir si horloge débranché ?
-    Serial.println("Erreur RTC");
-  }
-  if (!SD.begin(SDCARD_CS_PIN)) {
-    Serial.println(F("Erreur FAIL"));
-  }
-  
+  ledManager();
   uploadSD();
   delay(1000);
 }
