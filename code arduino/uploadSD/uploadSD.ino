@@ -6,13 +6,39 @@
 #include <TimeLib.h> // Pour la gestion du temps
 #include <ChainableLED.h>
 
+#define redButton 2
+#define blueButton 3
+
+
+byte SDCARD_CS_PIN  = 4; // Broche CS de la carte SD
+
+byte FILE_MAX_SIZE = 2048; // Taille maximale du fichier de log
 ChainableLED rgbLED(5, 6, 1);
 byte maintenanceMode = false;
 byte ecoMode = false;
-const byte SDCARD_CS_PIN = 4; // Broche CS de la carte SD
 RTC_DS1307 rtc;
 SdFat SD;
 SdFile myFile;
+
+
+void toggleMaintenance(){
+  Serial.println("Red button pressed");
+  DateTime start_temp = rtc.now();
+  do{
+    Serial.println("Waiting for red button");
+    if(start_temp.secondstime() - rtc.now().secondstime() >= 5){
+      maintenanceMode = !maintenanceMode;
+      Serial.println("Maintenance mode: " + String(maintenanceMode));
+      break;
+    }
+    Serial.println("Bah non");
+    delay(100);
+  }while (analogRead(redButton) >.5);
+}
+
+void toggleEco(){
+  Serial.println("Blue button pressed");
+}
 
 byte r,g,b; // A supprimer !!!
 
@@ -35,7 +61,7 @@ void uploadSD(){
     }
 
     Serial.println("File Size : " + String(myFile.fileSize())); // Pour le debug uniquement !! A retirer !!
-    if(myFile.fileSize() >= 2048){
+    if(myFile.fileSize() >= FILE_MAX_SIZE){
       byte i = 0;
       do
       {
@@ -92,8 +118,15 @@ void ledManager(){
 
 
 void setup() {
+
   Serial.begin(115200);
   Wire.begin();  //sets up the I2C
+
+  // Interruption
+  pinMode(redButton, INPUT); // Initialisation bouton rouge
+  pinMode(blueButton, INPUT); // Initialisation bouton bleu
+  attachInterrupt(digitalPinToInterrupt(redButton),toggleMaintenance,RISING);
+  attachInterrupt(digitalPinToInterrupt(blueButton),toggleEco,RISING);
 
   // Initialisation de la carte SD
   pinMode(SDCARD_CS_PIN, OUTPUT);
