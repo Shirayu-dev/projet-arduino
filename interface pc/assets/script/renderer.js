@@ -103,4 +103,213 @@ if (currentMode === "mtnc") {
             }
         }
     });
+
+    ipc.on("print-data", (event, meteoStationInfo, data) => {
+        ["name", "manufacturer", "path", "serialNumber", "version"].forEach(id => {
+            document.getElementById(id).innerText = meteoStationInfo[id];
+        });
+    })
 }
+
+if (currentMode === "config") {
+    let monitor = document.getElementById("consoleContent");
+    let connected = false;
+    const scrollDownMonitor = () => {
+        monitor.scrollIntoView({
+            behavior: "auto",
+            block: "end"
+        });
+    };
+
+    scrollDownMonitor();
+
+    let commandList = [
+        {
+            name: "LOG_INTERVALL",
+            defaultValue: 10,
+            unite: "min",
+            interval: [1, 1440]
+        }, {
+            name: "FILE_MAX_SIZE",
+            defaultValue: 2048,
+            unite: "octets",
+            interval: [256, 32767]//minimum à modif
+        }, {
+            name: "TIMEOUT",
+            defaultValue: 30,
+            unite: "s",
+            interval: [1, 32768]
+        }, {
+            name: "LUMIN",
+            defaultValue: 1,
+            unite: "",
+            interval: [0, 1]
+        }, {
+            name: "LUMIN_LOW",
+            defaultValue: 255,
+            unite: "lx",
+            interval: [0, "HIGH"]
+        }, {
+            name: "LUMIN_HIGH",
+            defaultValue: 768,
+            unite: "lx",
+            interval: ["LOW", 1023]
+        }, {
+            name: "TEMP_AIR",
+            defaultValue: 1,
+            unite: "",
+            interval: [0, 1]
+        }, {
+            name: "MIN_TEMP_AIR",
+            defaultValue: -10,
+            unite: "°C",
+            interval: [-40, "MAX"]
+        }, {
+            name: "MAX_TEMP_AIR",
+            defaultValue: 60,
+            unite: "",
+            interval: ["MIN", 85]
+        }, {
+            name: "HYGR",
+            defaultValue: 1,
+            unite: "",
+            interval: [0, 1]
+        }, {
+            name: "HYGR_MINT",
+            defaultValue: 0,
+            unite: "°C",
+            interval: [-40, "MAX"]
+        }, {
+            name: "HYGR_MAXT",
+            defaultValue: 50,
+            unite: "°C",
+            interval: ["MIN", 85]
+        }, {
+            name: "PRESSURE",
+            defaultValue: 1,
+            unite: "",
+            interval: [0, 1]
+        }, {
+            name: "PRESSURE_MIN",
+            defaultValue: 850,
+            unite: "hPa",
+            interval: [300, "MAX"]
+        }, {
+            name: "PRESSURE_MAX",
+            defaultValue: 1080,
+            unite: "hPa",
+            interval: ["MIN", 1100]
+        }
+    ];
+
+    const getCommand = (commandName) => commandList.filter(x => x.name.toLowerCase() === commandName.toLowerCase())[0];
+
+    const newOutput = (msg, type) => {
+        let newResponse = document.createElement("p");
+        if (type) newResponse.classList.add(type);
+        newResponse.innerText = msg;
+        monitor.appendChild(newResponse);
+        scrollDownMonitor();
+    }
+
+    const errorOutput = (errorMsgList) => {
+        errorMsgList.splice(0, 0, "Erreur :");
+        errorMsgList[errorMsgList.length - 1] += ".";
+        errorMsgList.forEach(x => {
+            newOutput(x, "error");
+        });
+    }
+
+    document.getElementById("commandInput").addEventListener("keyup", (event) => {
+        if (event.key === "Enter") {
+            let command = event.target.value;
+            if (!connected) return errorOutput(["Le module météo n'est pas connecté"]);
+            event.target.value = "";
+            newOutput(command, "pc");
+
+            let commandArgs = command.split(/ +/);
+
+            for (let i = 0; i < commandArgs.length; i++) {
+                let commandName = commandArgs[i].split("=")[0] || null;
+                let commandValue = commandArgs[i].split("=")[1] || null;
+                let commandInfos = getCommand(commandName);
+
+                if (commandName) {
+                    commandName = commandName.toLowerCase();
+                    newOutput(commandArgs[i].toUpperCase(), "command");
+                }
+
+                //Autres commandes  : DATE, DAY
+                if (commandName === "reset") {
+                    newOutput("Reset des valeurs effectué.", "arduino");
+                }
+                else if (commandName === "version") {
+                    newOutput("Version actuelle de la station météo : \"0.01\"", "arduino")
+                }
+                else if (commandName === "clock") {
+                    let argsForClock = commandValue ? commandValue.split(":") : [];
+                    if (argsForClock.length !== 3) errorOutput([`Nombre d'arguments invalides : "${argsForClock.length}" au lieu de "3"`, `Format attendu : "CLOCK=HH:MM:SS"`])
+                    else if (isNaN(argsForClock[0])) errorOutput([`Type invalide : "${argsForClock[0]}" n'est pas un nombre`])
+                    else if (isNaN(argsForClock[1])) errorOutput([`Type invalide : "${argsForClock[1]}" n'est pas un nombre`])
+                    else if (isNaN(argsForClock[2])) errorOutput([`Type invalide : "${argsForClock[2]}" n'est pas un nombre`])
+                    else {
+                        argsForClock[0] = parseInt(argsForClock[0]);
+                        argsForClock[1] = parseInt(argsForClock[1]);
+                        argsForClock[2] = parseInt(argsForClock[2]);
+
+                        if (argsForClock[0] < 0 || argsForClock[0] > 23) errorOutput([`Argument d'heure invalide : "${argsForClock[0]}" n'est pas compris entre "0" et "23"`])
+                        else if (argsForClock[1] < 0 || argsForClock[1] > 59) errorOutput([`Argument de minute invalide : "${argsForClock[1]}" n'est pas compris entre "0" et "59"`])
+                        else if (argsForClock[2] < 0 || argsForClock[2] > 59) errorOutput([`Argument de seconde invalide : "${argsForClock[2]}" n'est pas compris entre "0" et "59"`])
+                        else {
+                            newOutput(`Changement de l'heure effectué. Nouvelle heure : ${argsForClock[0]}h${argsForClock[1]} et ${argsForClock[2]}s`, "arduino");
+                        }
+                    }
+                }
+                else if (commandName === "date") {
+                    let argsForDate = commandValue ? commandValue.split(",") : [];
+                    if (argsForDate.length !== 3) errorOutput([`Nombre d'arguments invalides : "${argsForDate.length}" au lieu de "3"`, `Format attendu : "DATE=MOIS,JOUR,ANNEE"`])
+                    else if (isNaN(argsForDate[0])) errorOutput([`Type invalide : "${argsForDate[0]}" n'est pas un nombre`])
+                    else if (isNaN(argsForDate[1])) errorOutput([`Type invalide : "${argsForDate[1]}" n'est pas un nombre`])
+                    else if (isNaN(argsForDate[2])) errorOutput([`Type invalide : "${argsForDate[2]}" n'est pas un nombre`])
+                    else {
+                        argsForDate[0] = parseInt(argsForDate[0]);
+                        argsForDate[1] = parseInt(argsForDate[1]);
+                        argsForDate[2] = parseInt(argsForDate[2]);
+
+                        if (argsForDate[0] < 1 || argsForDate[0] > 12) errorOutput([`Argument d'heure invalide : "${argsForDate[0]}" n'est pas compris entre "1" et "12"`])
+                        else if (argsForDate[1] < 1 || argsForDate[1] > 31) errorOutput([`Argument de minute invalide : "${argsForDate[1]}" n'est pas compris entre "1" et "31"`])
+                        else if (argsForDate[2] < 2000 || argsForDate[2] > 2099) errorOutput([`Argument de seconde invalide : "${argsForDate[2]}" n'est pas compris entre "2000" et "2099"`])
+                        else {
+                            let date = new Date(`${argsForDate[1]}/${argsForDate[0]}/${argsForDate[2]}`);
+                            newOutput(`Changement de date effectué. Nouvelle date : ${new Intl.DateTimeFormat("fr-FR", { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(date)} `, "arduino");
+                        }
+                    }
+                }
+                else if (!commandInfos) {
+                    errorOutput([`"${commandName}" nom de commande invalide`]);
+                }
+                else {
+                    if (isNaN(commandValue)) errorOutput([`Type invalide : "${commandValue}" n'est pas un nombre`]);
+                    else {
+                        //à changer par currentValue
+                        let low = isNaN(commandInfos.interval[0]) ? getCommand(commandInfos.name.replace(commandInfos.interval[0] === "MIN" ? "MAX" : "HIGH", commandInfos.interval[0] === "MIN" ? "MIN" : "LOW")).defaultValue : commandInfos.interval[0];
+                        let high = isNaN(commandInfos.interval[1]) ? getCommand(commandInfos.name.replace(commandInfos.interval[1] === "MAX" ? "MIN" : "LOW", commandInfos.interval[1] === "MAX" ? "MAX" : "HIGH")).defaultValue : commandInfos.interval[1];
+                        if (commandValue < low || commandValue > high) errorOutput([`Argument invalide : "${commandValue}" n'est pas compris entre "${low}" et "${high}"`])
+                        else {
+                            newOutput(`Nouvelle valeur affectée au paramètre "${commandInfos.name}" : ${commandValue}`, "arduino");
+                            ipc.send("command", commandArgs[i]);
+                        }
+                    }
+                }
+            }
+
+        };
+    });
+
+    ipc.once("arduino-connected", (event) => {
+        newOutput("Module météo connecté.", "pc");
+        newOutput("En attente d'instruction...", "arduino");
+        connected = true;
+    });
+
+};
