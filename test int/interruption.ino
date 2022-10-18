@@ -9,62 +9,36 @@
 #define redButton 2
 #define blueButton 3
 
-
-byte SDCARD_CS_PIN  = 4; // Broche CS de la carte SD
-
-byte FILE_MAX_SIZE = 2048; // Taille maximale du fichier de log
-ChainableLED rgbLED(5, 6, 1);
 byte maintenanceMode = false;
 byte ecoMode = false;
-RTC_DS1307 rtc;
-SdFat SD;
-SdFile myFile;
+unsigned long tempTime = 0;
 
 
-void toggleMaintenance(){
-  Serial.println("Red button pressed");
-  DateTime start_temp = rtc.now();
-  do{
-    Serial.println("Waiting for red button");
-    if(start_temp.secondstime() - rtc.now().secondstime() >= 5){
-      maintenanceMode = !maintenanceMode;
-      Serial.println("Maintenance mode: " + String(maintenanceMode));
-      break;
-    }
-    Serial.println("Bah non");
-    delay(100);
-  }while (analogRead(redButton) >.5);
+void toggleEco() {
+  if((millis() - tempTime) >= 5000 && digitalRead(redButton) < 0.5){
+    ecoMode = !ecoMode;
+  }
+  tempTime = millis();
 }
 
-void toggleEco(){
-  Serial.println("Blue button pressed");
+void toggleMaintenance() {
+  if((millis() - tempTime) >= 5000 && digitalRead(redButton) < 0.5){
+    maintenanceMode = !maintenanceMode;
+  }
+  tempTime = millis();
 }
 
 void setup() {
-
   Serial.begin(115200);
-  Wire.begin();  //sets up the I2C
-
+  
   // Interruption
   pinMode(redButton, INPUT); // Initialisation bouton rouge
   pinMode(blueButton, INPUT); // Initialisation bouton bleu
-  attachInterrupt(digitalPinToInterrupt(redButton),toggleMaintenance,RISING);
-  attachInterrupt(digitalPinToInterrupt(blueButton),toggleEco,RISING);
-
-  // Initialisation de la carte SD
-  pinMode(SDCARD_CS_PIN, OUTPUT);
-  Serial.print(F("Init SD card... "));
-  if (SD.begin(SDCARD_CS_PIN)) {
-    Serial.println(F("Card OK"));
-  }
-  
-
-  if (!rtc.isrunning()) {
-    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-    Serial.println("Horloge du module RTC mise a jour");
-  }
+  attachInterrupt(digitalPinToInterrupt(redButton),toggleMaintenance,CHANGE);
+  attachInterrupt(digitalPinToInterrupt(blueButton),toggleEco,CHANGE);
 }
 
 void loop() {
+  Serial.println("Maintenance : " + String(maintenanceMode) + " Eco : " + String(ecoMode));
   delay(1000);
 }
