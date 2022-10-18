@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, globalShortcut } = require('electron');
 app.commandLine.appendSwitch("disable-renderer-backgrounding");
 const path = require('path');
 const ipc = require('electron').ipcMain;
@@ -83,6 +83,15 @@ async function createWindow() {
 //-------------------------------------------------Lancement de l'app-------------------------------------------------
 
 app.whenReady().then(() => {
+
+	globalShortcut.register('CommandOrControl+R', () => {
+		return;
+	});
+
+	globalShortcut.register('CommandOrControl+Shift+R', () => {
+		return;
+	});
+
 	createWindow();
 
 	app.on('activate', function () {
