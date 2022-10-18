@@ -126,76 +126,91 @@ if (currentMode === "config") {
     let commandList = [
         {
             name: "LOG_INTERVALL",
+            id: 0,
             defaultValue: 10,
             unite: "min",
             interval: [1, 1440]
         }, {
             name: "FILE_MAX_SIZE",
+            id: "2",
             defaultValue: 2048,
             unite: "octets",
             interval: [256, 32767]//minimum à modif
         }, {
             name: "TIMEOUT",
+            id: "4",
             defaultValue: 30,
             unite: "s",
             interval: [1, 32768]
         }, {
             name: "LUMIN",
+            id: "6",
             defaultValue: 1,
             unite: "",
             interval: [0, 1]
         }, {
             name: "LUMIN_LOW",
+            id: "8",
             defaultValue: 255,
             unite: "lx",
             interval: [0, "HIGH"]
         }, {
             name: "LUMIN_HIGH",
+            id: "10",
             defaultValue: 768,
             unite: "lx",
             interval: ["LOW", 1023]
         }, {
             name: "TEMP_AIR",
+            id: "12",
             defaultValue: 1,
             unite: "",
             interval: [0, 1]
         }, {
             name: "MIN_TEMP_AIR",
+            id: "14",
             defaultValue: -10,
             unite: "°C",
             interval: [-40, "MAX"]
         }, {
             name: "MAX_TEMP_AIR",
+            id: "16",
             defaultValue: 60,
             unite: "",
             interval: ["MIN", 85]
         }, {
             name: "HYGR",
+            id: "18",
             defaultValue: 1,
             unite: "",
             interval: [0, 1]
         }, {
             name: "HYGR_MINT",
+            id: "20",
             defaultValue: 0,
             unite: "°C",
             interval: [-40, "MAX"]
         }, {
             name: "HYGR_MAXT",
+            id: "22",
             defaultValue: 50,
             unite: "°C",
             interval: ["MIN", 85]
         }, {
             name: "PRESSURE",
+            id: "24",
             defaultValue: 1,
             unite: "",
             interval: [0, 1]
         }, {
             name: "PRESSURE_MIN",
+            id: "26",
             defaultValue: 850,
             unite: "hPa",
             interval: [300, "MAX"]
         }, {
             name: "PRESSURE_MAX",
+            id: "28",
             defaultValue: 1080,
             unite: "hPa",
             interval: ["MIN", 1100]
@@ -203,6 +218,17 @@ if (currentMode === "config") {
     ];
 
     const getCommand = (commandName) => commandList.filter(x => x.name.toLowerCase() === commandName.toLowerCase())[0];
+    const getCommandById = (commandId) => commandList.filter(x => x.id === commandId)[0];
+
+    const parseSettings = (settingsList) => {
+        let result = [];
+        settingsList.split(" ").forEach(setting => {
+            let temp = setting.split("=");
+            let commandInfos = getCommandById(temp[0]);
+            if (commandInfos) result.push(`${commandInfos.name} = ${temp[1]}${commandInfos.unite.length > 0 ? ` (${commandInfos.unite})` : ""}`);
+        });
+        return result;
+    };
 
     const newOutput = (msg, type) => {
         let newResponse = document.createElement("p");
@@ -239,12 +265,11 @@ if (currentMode === "config") {
                     newOutput(commandArgs[i].toUpperCase(), "command");
                 }
 
-                //Autres commandes  : DATE, DAY
                 if (commandName === "reset") {
                     newOutput("Reset des valeurs effectué.", "arduino");
                 }
                 else if (commandName === "version") {
-                    newOutput("Version actuelle de la station météo : \"0.01\"", "arduino")
+                    ipc.send("command", "version");
                 }
                 else if (commandName === "clock") {
                     let argsForClock = commandValue ? commandValue.split(":") : [];
@@ -291,13 +316,13 @@ if (currentMode === "config") {
                 else {
                     if (isNaN(commandValue)) errorOutput([`Type invalide : "${commandValue}" n'est pas un nombre`]);
                     else {
-                        //à changer par currentValue
+                        //à modif par currentValue
                         let low = isNaN(commandInfos.interval[0]) ? getCommand(commandInfos.name.replace(commandInfos.interval[0] === "MIN" ? "MAX" : "HIGH", commandInfos.interval[0] === "MIN" ? "MIN" : "LOW")).defaultValue : commandInfos.interval[0];
                         let high = isNaN(commandInfos.interval[1]) ? getCommand(commandInfos.name.replace(commandInfos.interval[1] === "MAX" ? "MIN" : "LOW", commandInfos.interval[1] === "MAX" ? "MAX" : "HIGH")).defaultValue : commandInfos.interval[1];
                         if (commandValue < low || commandValue > high) errorOutput([`Argument invalide : "${commandValue}" n'est pas compris entre "${low}" et "${high}"`])
                         else {
                             newOutput(`Nouvelle valeur affectée au paramètre "${commandInfos.name}" : ${commandValue}`, "arduino");
-                            ipc.send("command", commandArgs[i]);
+                            //ipc.send("command", commandArgs[i]);
                         }
                     }
                 }
@@ -308,8 +333,25 @@ if (currentMode === "config") {
 
     ipc.once("arduino-connected", (event) => {
         newOutput("Module météo connecté.", "pc");
-        newOutput("En attente d'instruction...", "arduino");
-        connected = true;
+        newOutput("Merci de ne pas débrancher le cable lors de l'exécution d'une commande.", "pc");
+        newOutput("Récupération des paramètres actuels...", "pc");
     });
 
-};
+    ipc.on("current-settings", (event, settings) => {
+
+        newOutput("Paramètres actuels :", "arduino");
+
+        parseSettings(settings).forEach(x => {
+            newOutput(x);
+        });
+
+        newOutput("En attente d'instructions...", "arduino");
+
+        if (!connected) connected = true;
+    });
+
+    ipc.on("answer", (event, msg) => {
+        newOutput(msg, "arduino");
+    });
+
+};//à modif Placer les valeurs actuels dans les variables et faire une boucle pour attendre la fin d'une commande pour lancer la suivante

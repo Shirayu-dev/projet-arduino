@@ -67,7 +67,11 @@ async function createWindow() {
 			await mainWindow.loadFile(getFile("config.html"));
 			await sleep(1000);
 			mainWindow.webContents.send("arduino-connected");
+			await sleep(3000);
+			return sendDataToArduino("senddata");
 		}
+		mainWindow.webContents.send(event, data);
+
 	})
 
 	windowEmitter.on("disconnected", async () => {
@@ -77,20 +81,20 @@ async function createWindow() {
 		} else mainWindow.webContents.send("disconnected");
 	});
 
-	mainWindow.loadFile(getFile("mtnc.html"));
+	mainWindow.loadFile(getFile("wait.html"));
 };
 
 //-------------------------------------------------Lancement de l'app-------------------------------------------------
 
 app.whenReady().then(() => {
 
-	globalShortcut.register('CommandOrControl+R', () => {
+	/*globalShortcut.register('CommandOrControl+R', () => {
 		return;
 	});
 
 	globalShortcut.register('CommandOrControl+Shift+R', () => {
 		return;
-	});
+	});*/
 
 	createWindow();
 
@@ -162,14 +166,15 @@ const dataReceive = (rawData) => {
 			}
 
 			if (data.mode === "config") {
-				if (data.print) return console.log(data.print);
-				return windowEmitter.emit("config", "waiting");
+				if (data.currentSettings) return windowEmitter.emit("config", "current-settings", data.currentSettings);
+				else if (data.answer) return windowEmitter.emit("config", "answer", data.answer);
+				else return windowEmitter.emit("config", "waiting");
 			}
 		}
 
 	}
 	catch {
-		console.log("Erreur lors de la lecture des données.");
+		console.log("Erreur lors de la lecture des données.", `\n${rawData}`);
 	}
 };
 
@@ -186,6 +191,6 @@ const sendDataToArduino = (data) => {
 	});
 };
 
-ipc.on("command", (event, input) => {
-	sendDataToArduino(input);
-});
+ipc.on("command", (event, cmd) => {
+	sendDataToArduino(cmd);
+})
