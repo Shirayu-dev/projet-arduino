@@ -51,7 +51,8 @@ void uploadSD(){
     while (myFile.available()) { // read from the file until there's nothing else in it:
       Serial.write(myFile.read());
     }
-    if(myFile.println("testing 1, 2, 3. -----------------------------------------")){// Faudra modif par toute les valeurs des capteurs !
+    int sensorValue = 0; // Faudra modif par toute les valeurs des capteurs !
+    if(myFile.println(sensorValue)){
       Serial.println("Write OK");
     }
     else{
