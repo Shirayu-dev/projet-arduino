@@ -16,6 +16,14 @@ const sleep = async (ms) => {
 	});
 };
 
+let meteoStationInfo = {
+	manufacturer: "",
+	name: "",
+	path: "",
+	serialNumber: "",
+	version: "0.0.1"
+};
+
 const getFile = fileName => `assets/html/${fileName}`;
 
 //-------------------------------------------------createWindow-------------------------------------------------
@@ -40,9 +48,9 @@ async function createWindow() {
 		if (currentMode !== "mtnc") {
 			currentMode = "mtnc";
 			await mainWindow.loadFile(getFile("mtnc.html"));
-		}
-		if (event === "print-data") return;//console.log(data);
-		//mainWindow.webContents.send(event, data);
+		};
+		mainWindow.webContents.send(event, meteoStationInfo, data);
+
 	});
 
 	windowEmitter.on("no-data", async () => {
@@ -52,6 +60,15 @@ async function createWindow() {
 		};
 		mainWindow.webContents.send("connected");
 	});
+
+	windowEmitter.on("config", async (event, data) => {
+		if (currentMode !== "config") {
+			currentMode = "config";
+			await mainWindow.loadFile(getFile("config.html"));
+			await sleep(1000);
+			mainWindow.webContents.send("arduino-connected");
+		}
+	})
 
 	windowEmitter.on("disconnected", async () => {
 		if (currentMode !== "wait") {
@@ -78,18 +95,23 @@ app.on('window-all-closed', function () {
 });
 
 //---------------------------------------Initialisation port série----------------------------------------------------
-/*
+
 const serialPort = require("serialport");
 const Readline = serialPort.ReadlineParser;
 let timeout;
+let port;
 
 const checkPort = () => {
 	serialPort.SerialPort.list().then(ports => {
-		let portInfos = ports.filter(p => p.manufacturer.startsWith("Arduino Srl"))[0];
+		let portInfos = ports.filter(p => p.manufacturer.toLowerCase().includes("arduino"))[0];
 		if (!portInfos) return;
+		meteoStationInfo.manufacturer = portInfos.manufacturer;
+		meteoStationInfo.name = portInfos.friendlyName;
+		meteoStationInfo.path = portInfos.path;
+		meteoStationInfo.serialNumber = portInfos.serialNumber;
 		portConnected();
 		let portPath = portInfos.path;
-		const port = new serialPort.SerialPort(
+		port = new serialPort.SerialPort(
 			{
 				path: `${portPath}`,
 				baudRate: 9600,
@@ -120,12 +142,22 @@ const dataReceive = (rawData) => {
 	try {
 		let data = JSON.parse(rawData);
 		if (data.mode) {
+
 			if (timeout) clearTimeout(timeout);
 			timeout = setTimeout(() => {
 				windowEmitter.emit("no-data");
 			}, detectDisconnect);
+
+			if (data.mode === "mntc") {
+				return windowEmitter.emit("mtnc", "print-data", data);
+			}
+
+			if (data.mode === "config") {
+				if (data.print) return console.log(data.print);
+				return windowEmitter.emit("config", "waiting");
+			}
 		}
-		if (data.mode === "mntc") return windowEmitter.emit("mtnc", "print-data", data);
+
 	}
 	catch {
 		console.log("Erreur lors de la lecture des données.");
@@ -137,11 +169,14 @@ const portDisconnected = () => {
 	checkPortInterval = setInterval(checkPort, timeBetweenCheckPort);
 };
 
-const sendDataToArduino = (data, port) => {
+const sendDataToArduino = (data) => {
 	Array.from(data).forEach((c) => {
 		port.write(Buffer.from(c, "ascii"), err => {
 			if (err) console.log(`Erreur : ${err}`);
 		});
 	});
 };
-*/
+
+ipc.on("command", (event, input) => {
+	sendDataToArduino(input);
+});
