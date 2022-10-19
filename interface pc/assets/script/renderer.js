@@ -297,7 +297,7 @@ if (currentMode === "config") {
         else if (commandName === "settings") {
             ipc.send("command", "senddata=")
         }
-        else if (commandName === "clock") {
+        /*else if (commandName === "clock") {
             let argsForClock = commandValue ? commandValue.split(":") : [];
             if (argsForClock.length !== 3) errorOutput([`Nombre d'arguments invalides : "${argsForClock.length}" au lieu de "3"`, `Format attendu : "CLOCK=HH:MM:SS"`])
             else if (isNaN(argsForClock[0])) errorOutput([`Type invalide : "${argsForClock[0]}" n'est pas un nombre`])
@@ -315,8 +315,8 @@ if (currentMode === "config") {
                     newOutput(`Changement de l'heure effectué. Nouvelle heure : ${argsForClock[0]}h${argsForClock[1]} et ${argsForClock[2]}s`, "arduino");
                 }
             }
-        }
-        else if (commandName === "date") {
+        }*/
+        /*else if (commandName === "date") {
             let argsForDate = commandValue ? commandValue.split(",") : [];
             if (argsForDate.length !== 3) errorOutput([`Nombre d'arguments invalides : "${argsForDate.length}" au lieu de "3"`, `Format attendu : "DATE=MOIS,JOUR,ANNEE"`])
             else if (isNaN(argsForDate[0])) errorOutput([`Type invalide : "${argsForDate[0]}" n'est pas un nombre`])
@@ -335,7 +335,7 @@ if (currentMode === "config") {
                     newOutput(`Changement de date effectué. Nouvelle date : ${new Intl.DateTimeFormat("fr-FR", { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(date)} `, "arduino");
                 }
             }
-        }
+        }*/
         else if (!commandInfos) {
             errorOutput([`"${commandName.toUpperCase()}" nom de commande invalide`]);
         }
@@ -347,6 +347,8 @@ if (currentMode === "config") {
                 let high = isNaN(commandInfos.interval[1]) ? getCommand(commandInfos.name.replace(commandInfos.interval[1] === "MAX" ? "MIN" : "LOW", commandInfos.interval[1] === "MAX" ? "MAX" : "HIGH")).currentValue : commandInfos.interval[1];
                 if (commandValue < low || commandValue > high) errorOutput([`Argument invalide : "${commandValue}" n'est pas compris entre "${low}" et "${high}"`])
                 else {
+                    let { place } = getCommandById(commandInfos.id);
+                    commandList[place].currentValue = parseInt(commandValue);
                     ipc.send("command", `put=${commandInfos.id}:${commandValue}.`);
                 }
             }
@@ -398,4 +400,4 @@ if (currentMode === "config") {
         else newOutput("En attente d'instructions...", "arduino");
     });
 
-};//Ajouter historique de commande et les boutons à droite pour créer des commandes customs
+};//Ajouter historique de commande et les boutons à droite pour créer des commandes customs, historique des commandes + commande clock et date
