@@ -11,21 +11,22 @@
 
 byte maintenanceMode = false;
 byte ecoMode = false;
-unsigned long tempTime = 0;
+unsigned long tempTimeBlue = 0;
+unsigned long tempTimeRed = 0;
 
 
 void toggleEco() {
-  if((millis() - tempTime) >= 5000 && digitalRead(redButton) < 0.5){
+  if((millis() - tempTimeBlue) >= 5000 && digitalRead(blueButton) < 0.5){
     ecoMode = !ecoMode;
   }
-  tempTime = millis();
+  tempTimeBlue = millis();
 }
 
 void toggleMaintenance() {
-  if((millis() - tempTime) >= 5000 && digitalRead(redButton) < 0.5){
+  if((millis() - tempTimeRed) >= 5000 && digitalRead(redButton) < 0.5){
     maintenanceMode = !maintenanceMode;
   }
-  tempTime = millis();
+  tempTimeRed = millis();
 }
 
 void setup() {

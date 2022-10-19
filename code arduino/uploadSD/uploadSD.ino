@@ -5,11 +5,13 @@
 #include <Wire.h> // Pour la communication I2C
 #include <TimeLib.h> // Pour la gestion du temps
 #include <ChainableLED.h>
+#include <SoftwareSerial.h >
+
 
 #define redButton 2
 #define blueButton 3
 
-
+SoftwareSerial gps(7,8);
 byte SDCARD_CS_PIN  = 4; // Broche CS de la carte SD
 
 byte FILE_MAX_SIZE = 2048; // Taille maximale du fichier de log
@@ -19,28 +21,22 @@ byte ecoMode = false;
 RTC_DS1307 rtc;
 SdFat SD;
 SdFile myFile;
+unsigned long tempTimeBlue = 0;
+unsigned long tempTimeRed = 0;
 
-
-void toggleMaintenance(){
-  Serial.println("Red button pressed");
-  DateTime start_temp = rtc.now();
-  do{
-    Serial.println("Waiting for red button");
-    if(start_temp.secondstime() - rtc.now().secondstime() >= 5){
-      maintenanceMode = !maintenanceMode;
-      Serial.println("Maintenance mode: " + String(maintenanceMode));
-      break;
-    }
-    Serial.println("Bah non");
-    delay(100);
-  }while (analogRead(redButton) >.5);
+void toggleEco() {
+  if((millis() - tempTimeBlue) >= 5000 && digitalRead(blueButton) < 0.5){
+    ecoMode = !ecoMode;
+  }
+  tempTimeBlue = millis();
 }
 
-void toggleEco(){
-  Serial.println("Blue button pressed");
+void toggleMaintenance() {
+  if((millis() - tempTimeRed) >= 5000 && digitalRead(redButton) < 0.5){
+    maintenanceMode = !maintenanceMode;
+  }
+  tempTimeRed = millis();
 }
-
-byte r,g,b; // A supprimer !!!
 
 void uploadSD(){
   char fileName[14];
@@ -82,18 +78,28 @@ void uploadSD(){
 
 void ledManager(){
     while(!rtc.begin()) {
-        Serial.println("Erreur RTC");
-        rgbLED.setColorRGB(0, r, g, b);
-        delay(500);
-        rgbLED.setColorRGB(0, r, g, b);
+      Serial.println("Erreur RTC");
+      rgbLED.setColorRGB(0, 50, 0, 0);
+      delay(500);
+      rgbLED.setColorRGB(0, 0, 0, 100);
+      delay(500);
     }
     while(!SD.begin(SDCARD_CS_PIN)) {
-        Serial.println(F("Erreur SD"));
-        rgbLED.setColorRGB(0, r, g, b);
-        delay(500);
-        rgbLED.setColorRGB(0, r, g, b);
+      Serial.println(F("Erreur SD"));
+      rgbLED.setColorRGB(0, 50, 0, 0);
+      delay(333);
+      rgbLED.setColorRGB(0, 50, 50, 50);
+      delay(666);
     }
-    // while(GPS) {
+    while (SD.freeClusterCount() <= 1){
+      Serial.println(F("SD Full"));
+      rgbLED.setColorRGB(0, 50, 0, 0);
+      delay(500);
+      rgbLED.setColorRGB(0, 50, 50, 50);
+      delay(500);
+    }
+    
+    // while(gps.available()) {
     //   Serial.println(F("Erreur GPS"));
     //   rgbLED.setColorRGB(0, r, g, b);
     //   delay(500);
@@ -107,35 +113,28 @@ void ledManager(){
     // }
 
     if(maintenanceMode){ // en maintenance
-        rgbLED.setColorRGB(0, r, g, b);
+        rgbLED.setColorRGB(0, 50, 10, 0);
     }
     else if(ecoMode){ // en éco
-        rgbLED.setColorRGB(0, r, g, b);
+        rgbLED.setColorRGB(0, 0, 0, 50);
     }
     else{ // en standard
-        rgbLED.setColorRGB(0, r, g, b);
+        rgbLED.setColorRGB(0, 0, 50, 0);
     }
 }
 
 
 void setup() {
-
+  gps.begin(115200);
   Serial.begin(115200);
   Wire.begin();  //sets up the I2C
 
   // Interruption
   pinMode(redButton, INPUT); // Initialisation bouton rouge
   pinMode(blueButton, INPUT); // Initialisation bouton bleu
-  attachInterrupt(digitalPinToInterrupt(redButton),toggleMaintenance,RISING);
-  attachInterrupt(digitalPinToInterrupt(blueButton),toggleEco,RISING);
-
-  // Initialisation de la carte SD
-  pinMode(SDCARD_CS_PIN, OUTPUT);
-  Serial.print(F("Init SD card... "));
-  if (SD.begin(SDCARD_CS_PIN)) {
-    Serial.println(F("Card OK"));
-  }
-  
+  attachInterrupt(digitalPinToInterrupt(redButton),toggleMaintenance,CHANGE);
+  attachInterrupt(digitalPinToInterrupt(blueButton),toggleEco,CHANGE);
+ 
   ledManager();
 
   if (!rtc.isrunning()) {
@@ -145,7 +144,10 @@ void setup() {
 }
 
 void loop() {
+  Serial.println("GPS : " + String(gps.available()) + " Capteur : " + String(1));
+  Serial.println("" + String(SD.freeClusterCount()));
+  Serial.println("Maintenane : " + String(maintenanceMode) + " Eco : " + String(ecoMode));
   ledManager();
-  uploadSD();
+  // uploadSD();
   delay(1000);
 }
