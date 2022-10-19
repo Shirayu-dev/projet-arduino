@@ -17,8 +17,8 @@
 #define PRESSURE_MAX 28
 #define checkSettingsExist 30
 
-const char VERSION[6]="0.0.1";
-const char NUM_LOT[11]="0000000042";
+const char VERSION[6] PROGMEM ="0.0.1";
+const char NUM_LOT[11] PROGMEM ="0000000042";
 
 #define settings_length 16
 const int16_t DEFAULT_SETTINGS[settings_length] PROGMEM ={10,2048,30,1,255,768,1,-10,60,1,0,50,1,850,1080,17438};
@@ -30,6 +30,7 @@ int timer=0;
 void setup()
 {
     Serial.begin(9600);
+    checkSettings();
     configMode();
 }
 
@@ -39,9 +40,9 @@ void loop()
 
 void configMode()
 {
-    checkSettings();
     String command="";
-    char character;
+    int place;
+    //char character;
     while(timer<30){
         if(Serial.available()<=0) {
             Serial.println(F("{\"mode\":\"config\"}"));
@@ -49,39 +50,51 @@ void configMode()
         }
         else {  
             delay(200);
-            command="";
-            while(Serial.available()>0) {
+            /*while(Serial.available()>0 && character!='=') {
                 character=Serial.read();
-                command.concat(character);
-            }
+                if(character!='=') command.concat(character);
+            }*/
+
+            command=Serial.readStringUntil('=');
 
             if(command=="senddata") sendCurrentSettings();
-            else if(command=="version") sendVersion();
+            else if(command=="version") {
+                eraseSerial();
+                sendVersion();
+            }
+            else if(command=="reset"){
+                eraseSerial();
+                reset();
+                Serial.println(F("{\"mode\":\"config\",\"answer\":\"Reset des paramètres par défaut effectué.\"}"));
+            }
+            else if(command=="put"){
+                place=Serial.readStringUntil(':').toInt();
+                settingTemp=Serial.readStringUntil('.').toInt();
+                EEPROM.put(place,settingTemp);
+                Serial.println(F("{\"mode\":\"config\",\"answer\":\"Valeur du paramètre modifié.\"}"));
+            }
+            Serial.println(F("{\"mode\":\"config\",\"state\":\"next\"}"));
         }
+    }
+}
+
+void eraseSerial(){
+    while(Serial.available()>0) {
+        Serial.read();
     }
 }
 
 void checkSettings(){
     EEPROM.get(checkSettingsExist,settingTemp);
     if(settingTemp!=DEFAULT_SETTINGS[settings_length-1]){
-        //Serial.println("Pas de paramètres sauvegardés dans l'EEPROM");
-        //Serial.println("Début de la sauvegarde des paramètres dans l'EEPROM");
-        for(int8_t i=0;i<settings_length;i++){
-            settingTemp=pgm_read_word_near(DEFAULT_SETTINGS+i);
-            //Serial.print("Valeur : ");
-            //Serial.print(settingTemp);
-            //Serial.print(" ");
-            EEPROM.put(i*2,settingTemp);
-        }
-        //Serial.print("\n");
-    } else {
-        //Serial.println("Paramètres déjà existant");
-        for(int8_t i=0;i<settings_length;i++){
-            EEPROM.get(i*2,settingTemp);
-            //Serial.print("Valeur ");Serial.print(i);Serial.print(": ");
-            //Serial.print(settingTemp);Serial.println(" ");
-        }
-        //Serial.print("\n");
+        reset();
+    }
+}
+
+void reset(){
+    for(int8_t i=0;i<settings_length;i++){
+        settingTemp=pgm_read_word_near(DEFAULT_SETTINGS+i);
+        EEPROM.put(i*2,settingTemp);
     }
 }
 
@@ -98,9 +111,16 @@ void sendCurrentSettings(){
 }
 
 void sendVersion(){
-    Serial.print(F("{\"mode\":\"config\",\"answer\":\"Numéro de version : "));
-    Serial.print(VERSION);
+    Serial.print(F("{\"mode\":\"config\",\"answer\":\"Numéro de version du programme : "));
+    char myChar;
+    for (int8_t k = 0; k < strlen_P(VERSION); k++) {
+        myChar = pgm_read_byte_near(VERSION + k);
+        Serial.print(myChar);
+    }
     Serial.print(F(". Numéro de lot : "));
-    Serial.print(NUM_LOT);
+    for (int8_t k = 0; k < strlen_P(NUM_LOT); k++) {
+        myChar = pgm_read_byte_near(NUM_LOT + k);
+        Serial.print(myChar);
+    }
     Serial.println(F(".\"}"));
 }

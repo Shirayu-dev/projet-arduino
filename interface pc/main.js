@@ -3,6 +3,7 @@ app.commandLine.appendSwitch("disable-renderer-backgrounding");
 const path = require('path');
 const ipc = require('electron').ipcMain;
 const devTools = true;
+const debugMode = false;
 const detectDisconnect = 3000;
 const timeBetweenCheckPort = 1000;
 
@@ -117,7 +118,7 @@ let port;
 const checkPort = () => {
 	serialPort.SerialPort.list().then(ports => {
 		let portInfos = ports.filter(p => p.manufacturer.toLowerCase().includes("arduino"))[0];
-		if (!portInfos) return;
+		if (!portInfos) return windowEmitter.emit("disconnected");;
 		meteoStationInfo.manufacturer = portInfos.manufacturer;
 		meteoStationInfo.name = portInfos.friendlyName;
 		meteoStationInfo.path = portInfos.path;
@@ -152,6 +153,7 @@ const portConnected = () => {
 
 
 const dataReceive = (rawData) => {
+	if (debugMode) console.log("INPUT : ", rawData);
 	try {
 		let data = JSON.parse(rawData);
 		if (data.mode) {
@@ -168,13 +170,14 @@ const dataReceive = (rawData) => {
 			if (data.mode === "config") {
 				if (data.currentSettings) return windowEmitter.emit("config", "current-settings", data.currentSettings);
 				else if (data.answer) return windowEmitter.emit("config", "answer", data.answer);
+				else if (data.state && data.state === "next") return windowEmitter.emit("config", "next-command");
 				else return windowEmitter.emit("config", "waiting");
 			}
 		}
 
 	}
 	catch {
-		console.log("Erreur lors de la lecture des données.", `\n${rawData}`);
+		if (!debugMode) console.log("Erreur lors de la lecture des données.", `\n${rawData}`);
 	}
 };
 
@@ -184,6 +187,7 @@ const portDisconnected = () => {
 };
 
 const sendDataToArduino = (data) => {
+	if (debugMode) console.log("OUTPUT : ", data);
 	Array.from(data).forEach((c) => {
 		port.write(Buffer.from(c, "ascii"), err => {
 			if (err) console.log(`Erreur : ${err}`);
@@ -193,4 +197,8 @@ const sendDataToArduino = (data) => {
 
 ipc.on("command", (event, cmd) => {
 	sendDataToArduino(cmd);
-})
+});
+
+ipc.on("incorrect-command", (event) => {
+	windowEmitter.emit("config", "next-command");
+});
