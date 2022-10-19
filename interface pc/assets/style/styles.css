@@ -219,10 +219,19 @@ body.config .container {
     height: 90%;
 }
 
+body.config .container.no-button {
+    grid-template-columns: 50%;
+    justify-content: center;
+}
+
 body.config .container .left,
 body.config .container .right {
     padding: 20px;
     border-radius: 10px;
+}
+
+body.config .container.no-button .right {
+    display: none;
 }
 
 body.config .container .left h1,
