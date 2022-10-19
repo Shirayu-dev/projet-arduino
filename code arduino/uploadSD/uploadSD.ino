@@ -89,7 +89,7 @@ void ledManager(){
       rgbLED.setColorRGB(0, 50, 0, 0);
       delay(333);
       rgbLED.setColorRGB(0, 50, 50, 50);
-      delay(666);
+      delay(667);
     }
     while (SD.freeClusterCount() <= 1){
       Serial.println(F("SD Full"));
