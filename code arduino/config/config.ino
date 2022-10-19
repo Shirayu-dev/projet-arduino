@@ -59,11 +59,9 @@ void configMode()
 
             if(command=="senddata") sendCurrentSettings();
             else if(command=="version") {
-                eraseSerial();
                 sendVersion();
             }
             else if(command=="reset"){
-                eraseSerial();
                 reset();
                 Serial.println(F("{\"mode\":\"config\",\"answer\":\"Reset des paramètres par défaut effectué.\"}"));
             }
@@ -75,12 +73,6 @@ void configMode()
             }
             Serial.println(F("{\"mode\":\"config\",\"state\":\"next\"}"));
         }
-    }
-}
-
-void eraseSerial(){
-    while(Serial.available()>0) {
-        Serial.read();
     }
 }
 
