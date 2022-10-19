@@ -25,7 +25,7 @@
         <p><strong>Fabricant du microcontrôleur :</strong> <span id="manufacturer">...</span></p>
         <p><strong>Nom port série :</strong> <span id="path">...</span></p>
         <p><strong>Numéro de série :</strong> <span id="serialNumber">...</span></p>
-        <p><strong>Version du programme :</strong> <span id="version">...</span></p>
+        <p><strong>Version du programme de l'interface série :</strong> <span id="version">...</span></p>
       </div>
     </div>
     <div class="bottom">
@@ -42,26 +42,30 @@
         <div class="bars">
           <div class="light">
             <p class="title">Luminosité :</p>
-            <div class="bar" min="0" max="1023"> 
+            <div class="bar" unite="" min="0" max="1023"> 
               <div class="bar-color"></div>
+              <p class="current-value">N/A</p>
             </div>
           </div>
           <div class="hydro">
             <p class="title">Humidité :</p>
-            <div class="bar" min="0" max="100"> 
+            <div class="bar" unite="%" min="0" max="100"> 
               <div class="bar-color"></div>
+              <p class="current-value">N/A</p>
             </div>
           </div>
           <div class="pression">
             <p class="title">Pression :</p>
-            <div class="bar" min="850" max="1080"> 
+            <div class="bar" unite="hPa" min="850" max="1080"> 
               <div class="bar-color"></div>
+              <p class="current-value">N/A</p>
             </div>
           </div>
           <div class="temp">
             <p class="title">Température :</p>
-            <div class="bar" min="-10" max="60">
+            <div class="bar" unite="°C" min="-10" max="60">
               <div class="bar-color"></div>
+              <p class="current-value">N/A</p>
             </div>
           </div>
         </div>

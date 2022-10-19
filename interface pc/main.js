@@ -177,7 +177,7 @@ const dataReceive = (rawData) => {
 
 	}
 	catch {
-		if (!debugMode) console.log("Erreur lors de la lecture des données.", `\n${rawData}`);
+		console.log("Erreur lors de la lecture des données.", `\n${rawData}`);
 	}
 };
 

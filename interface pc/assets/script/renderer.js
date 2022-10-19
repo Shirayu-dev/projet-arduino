@@ -38,38 +38,42 @@ if (currentMode === "mtnc") {
         data: {
             labels: ["", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
             datasets: [{
+                yAxisID: "light",
                 label: "Luminosité",
-                data: [0, 0, 0, 0, 0, 0, 0, 0, 8, 12, 8, 7, 6, 12, 10, 11, 8, 7, 6, 5, 4, 6, 8, 7, 10],
+                data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                 borderColor: transparentColor,
                 pointBackgroundColor: transparentColor,
                 fill: true,
                 backgroundColor: fillColor[0],
-                tension: 0.4
+                tension: 0.4,
             },
             {
+                yAxisID: "hydro",
                 label: "Humidité",
-                data: [0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 5, 8, 2, 5, 4, 3, 5, 12, 10, 11, 12, 8, 5, 4, 3],
+                data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                 borderColor: transparentColor,
                 pointBackgroundColor: transparentColor,
                 fill: true,
                 backgroundColor: fillColor[1],
-                tension: 0.4
+                tension: 0.4,
             },
             {
+                yAxisID: "pression",
                 label: "Pression",
-                data: [0, 0, 0, 0, 0, 0, 0, 0, 5, 8, 2, 3, 5, 5, 4, 8, 6, 11, 10, 9, 8, 8, 7, 5, 2],
+                data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                 borderColor: transparentColor,
                 pointBackgroundColor: transparentColor,
                 fill: true,
                 backgroundColor: fillColor[2],
-                tension: 0.4
+                tension: 0.4,
             },
             {
+                yAxisID: "temp",
                 label: "Température",
-                data: [0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 3, 4, 5, 4, 4, 5, 4, 3, 4, 3, 4, 4, 5, 5, 3],
+                data: [-10, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10],
                 borderColor: transparentColor,
                 pointBackgroundColor: transparentColor,
-                fill: true,
+                fill: { value: -10 },
                 backgroundColor: fillColor[3],
                 tension: 0.4
             }]
@@ -81,8 +85,45 @@ if (currentMode === "mtnc") {
                         color: gridColor
                     }
                 },
-                y: {
-                    beginAtZero: true,
+
+                light: {
+                    position: "left",
+                    min: 0,
+                    max: 1023,
+                    ticks: {
+                        color: textColor
+                    },
+                    grid: {
+                        color: transparentColor
+                    }
+                },
+                hydro: {
+                    position: "left",
+                    min: 0,
+                    max: 100,
+                    ticks: {
+                        color: textColor,
+                        callback: (value) => `${value} %`
+                    },
+                    grid: {
+                        color: transparentColor
+                    }
+                },
+                pression: {
+                    position: "right",
+                    min: 850,
+                    max: 1080,
+                    ticks: {
+                        color: textColor
+                    },
+                    grid: {
+                        color: transparentColor
+                    }
+                },
+                temp: {
+                    position: "right",
+                    min: -10,
+                    max: 60,
                     ticks: {
                         color: textColor
                     },
@@ -99,15 +140,71 @@ if (currentMode === "mtnc") {
                             size: 13
                         }
                     }
-                }
+                },
             }
         }
     });
+
+    chart.options.animations = false;
+
+    let light = {
+        bar: document.querySelector(".light").querySelector(".bar")
+    };
+    light.colorBar = light.bar.querySelector(".bar-color");
+    light.currentValue = light.bar.querySelector(".current-value");
+
+    let hydro = {
+        bar: document.querySelector(".hydro").querySelector(".bar")
+    };
+    hydro.colorBar = hydro.bar.querySelector(".bar-color");
+    hydro.currentValue = hydro.bar.querySelector(".current-value");
+
+    let pression = {
+        bar: document.querySelector(".pression").querySelector(".bar")
+    };
+    pression.colorBar = pression.bar.querySelector(".bar-color");
+    pression.currentValue = pression.bar.querySelector(".current-value");
+
+    let temp = {
+        bar: document.querySelector(".temp").querySelector(".bar")
+    };
+    temp.colorBar = temp.bar.querySelector(".bar-color");
+    temp.currentValue = temp.bar.querySelector(".current-value");
+
+    const updateAxis = (axisName, newValue) => {
+        let data = chart.data.datasets.filter(x => x.label === axisName)[0].data;
+        data.push(newValue);
+        data.shift();
+        chart.update();
+    }
+
 
     ipc.on("print-data", (event, meteoStationInfo, data) => {
         ["name", "manufacturer", "path", "serialNumber", "version"].forEach(id => {
             document.getElementById(id).innerText = meteoStationInfo[id];
         });
+
+        let lightValues = data.light.split(":");
+
+        light.colorBar.style.height = `${((parseFloat(lightValues[0]) - parseFloat(light.bar.getAttribute("min"))) / (parseFloat(light.bar.getAttribute("max")) - parseFloat(light.bar.getAttribute("min")))) * 100}%`;
+        light.currentValue.innerText = `${lightValues[1]}`;
+
+        updateAxis("Luminosité", parseFloat(lightValues[0]));
+
+        hydro.colorBar.style.height = `${(data.hydro / (parseFloat(hydro.bar.getAttribute("max")) - parseFloat(hydro.bar.getAttribute("min")))) * 100}%`;
+        hydro.currentValue.innerText = `${data.hydro} ${hydro.bar.getAttribute("unite")}`;
+
+        updateAxis("Humidité", data.hydro);
+
+        pression.colorBar.style.height = `${((data.pression - parseFloat(pression.bar.getAttribute("min"))) / (parseFloat(pression.bar.getAttribute("max")) - parseFloat(pression.bar.getAttribute("min")))) * 100}%`;
+        pression.currentValue.innerText = `${data.pression} ${pression.bar.getAttribute("unite")}`;
+
+        updateAxis("Pression", data.pression);
+
+        temp.colorBar.style.height = `${((data.temp - parseFloat(temp.bar.getAttribute("min"))) / (parseFloat(temp.bar.getAttribute("max")) - parseFloat(temp.bar.getAttribute("min")))) * 100}%`;
+        temp.currentValue.innerText = `${data.temp} ${temp.bar.getAttribute("unite")}`;
+
+        updateAxis("Température", data.temp);
     })
 }
 
