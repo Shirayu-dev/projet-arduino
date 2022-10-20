@@ -226,19 +226,12 @@ void standart(){
 //----------Fonctions pour le mode config----------
 
 //Mode configuration - Exit après 30min sans commande
-<<<<<<< HEAD
 // void config()
 // {
 //     rgbLED.setColorRGB(0,70,50,0);
 //     delay(10000);
 // }
-=======
-void config()
-{
-    rgbLED.setColorRGB(0,70,50,0);
-    delay(10000);
-}
->>>>>>> c033426d78023fba373758f23b7241d72a2b36e0
+
 
 //Vérifie si des paramètres sont sauvegardés dans l'EEPROM et sinon enregistre les paramètres par défaut dedans
 void checkSettings(){
@@ -258,11 +251,8 @@ void reset(){
 
 //----------Fonctions pour le mode maintenance----------
 
-<<<<<<< HEAD
+
 // void maintenance(){}
-=======
-void maintenance(){}
->>>>>>> c033426d78023fba373758f23b7241d72a2b36e0
 
 void getGPS(){//structure gps
     do
