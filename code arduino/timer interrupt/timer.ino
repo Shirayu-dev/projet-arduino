@@ -41,19 +41,15 @@ void getData() {
   // altitude = bme.readAltitude(SEALEVELPRESSURE_HPA); bjr je ne sers à rien x)
 }
 
-byte MIN_TEMP_AIR, MAX_TEMP_AIR, MIN_HUMIDITY, MAX_HUMIDITY, MIN_PRESSURE, MAX_PRESSURE, MIN_LUMIN, MAX_LUMIN = 0;
+byte MIN_TEMP_AIR, MAX_TEMP_AIR, MIN_HUMIDITY, MAX_HUMIDITY, PRESSURE_MIN, MAX_PRESSURE, MIN_LUMIN, MAX_LUMIN = 0;
 
-static byte errorTab[4] = {0,0,0,0}; // Tableau pour stocker les erreurs
+static byte errorTab[2] = {0,0}; // Tableau pour stocker les erreurs
 byte doubleError(){
   (MIN_TEMP_AIR < temperature && MAX_TEMP_AIR > temperature) ? errorTab[0] += 1 : errorTab[0] = 0;
-  (MIN_HUMIDITY < humidity && MAX_HUMIDITY > humidity) ? errorTab[1] += 1 : errorTab[1] = 0;
-  (MIN_PRESSURE < pressure && MAX_PRESSURE > pressure) ? errorTab[2] += 1 : errorTab[2] = 0;
-  (MIN_LUMIN < lumin && MAX_LUMIN > lumin) ? errorTab[3] += 1 : errorTab[3] = 0;
+  (PRESSURE_MIN < pressure && MAX_PRESSURE > pressure) ? errorTab[2] += 1 : errorTab[2] = 0;
   
-  for(byte i=0; i<4; i++){
-    if(errorTab[i] >= 2){
-      return 1;
-    }
+  if(errorTab[0] > 1 || errorTab[2] > 1){
+    return 1;
   }
   return 0;
 }
