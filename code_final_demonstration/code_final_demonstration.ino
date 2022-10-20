@@ -51,7 +51,10 @@ SoftwareSerial gps(7,8);
 byte SDCARD_CS_PIN  = 4; // Broche CS de la carte SD
 RTC_DS1307 rtc; //Horloge RTC
 SdFat SD;
+<<<<<<< HEAD
 // SdFile myFile;
+=======
+>>>>>>> c033426d78023fba373758f23b7241d72a2b36e0
 
 //Variables utiles pour les mesures des capteurs
 
@@ -122,6 +125,7 @@ void ledManager(){
       rgbLED.setColorRGB(0, 50, 50, 50);
       delay(667);
     }
+<<<<<<< HEAD
     while(!bme.begin(0x76)) {
       Serial.println(F("Erreur Capteurs"));
       rgbLED.setColorRGB(0, 50, 0, 0);
@@ -136,6 +140,9 @@ void ledManager(){
     //   rgbLED.setColorRGB(0, 50, 50, 50);
     //   delay(500);
     // }
+=======
+    
+>>>>>>> c033426d78023fba373758f23b7241d72a2b36e0
     // while(gps.available()) {
     //   Serial.println(F("Erreur GPS"));
     //   rgbLED.setColorRGB(0, r, g, b);
