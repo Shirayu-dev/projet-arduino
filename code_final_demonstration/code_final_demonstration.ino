@@ -51,7 +51,6 @@ SoftwareSerial gps(7,8);
 byte SDCARD_CS_PIN  = 4; // Broche CS de la carte SD
 RTC_DS1307 rtc; //Horloge RTC
 SdFat SD;
-SdFile myFile;
 
 //Variables utiles pour les mesures des capteurs
 
