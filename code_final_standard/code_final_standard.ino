@@ -27,22 +27,19 @@
 #define PRESSURE_MAX 28
 #define checkSettingsExist 30
 
-//Numéro de version du programme
-const char VERSION[2] PROGMEM ="1";
-//Numéro de lot du module météo
-const char NUM_LOT[3] PROGMEM ="42";
-
 #define settings_length 16
 //Liste des paramètres par défaut
 const int16_t DEFAULT_SETTINGS[settings_length] PROGMEM ={10,2048,30,1,255,768,1,-10,60,1,0,50,1,850,1080,17438};
 int16_t settingTemp;
+
+#define SEALEVELPRESSURE_HPA (1013.25) // Pression atmosphérique au niveau de la mer.
 
 //Pin des boutons rouge et bleu
 #define redButton 2
 #define blueButton 3
 
 unsigned long tempTimeBlue = 0;
-unsigned long tempTimeRed = 0;
+// unsigned long tempTimeRed = 0;
 
 //Initialisation des différents périphériques
 
@@ -64,18 +61,26 @@ unsigned long time; // Stocker le temps depuis la dernière mesure
 
 //État des différents modes
 
-byte maintenanceMode = false;
+// byte maintenanceMode = false;
 byte ecoMode = false;
 byte ecoGPS = false;
 
 void setup()
 {
     Serial.begin(9600);
+    Serial.println("setup");
     gps.begin(9600);
     bme.begin(0x76);   // 0x76 = I2C adresse si sur 3.3v
     Wire.begin();  //sets up the I2C
     pinMode(redButton, INPUT); // Initialisation bouton rouge
     pinMode(blueButton, INPUT); // Initialisation bouton bleu
+
+    cli();           // disable all interrupts
+    TCCR2A = (1<<WGM21)|(0<<WGM20); // Mode CTC
+    TIMSK2 = (1<<OCIE2A); // Local interruption OCIE2A
+    TCCR2B = (0<<WGM22)|(1<<CS22)|(1<<CS21); // Frequency 16Mhz/ 256 = 62500
+    OCR2A = 250;       //250*125 = 31250 = 16Mhz/256/2
+    sei();          // enable all interrupts
 
     if (!rtc.isrunning()) {
         rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
@@ -84,9 +89,9 @@ void setup()
 
     checkSettings();
 
-    if(digitalRead(redButton)==1) config(); //Si bouton rouge appuyé => mode configuration
+    // if(digitalRead(redButton)==1) config(); //Si bouton rouge appuyé => mode configuration
 
-    attachInterrupt(digitalPinToInterrupt(redButton),toggleMaintenance,CHANGE);
+    // attachInterrupt(digitalPinToInterrupt(redButton),toggleMaintenance,CHANGE);
     attachInterrupt(digitalPinToInterrupt(blueButton),toggleEco,CHANGE);
 
     ledManager();
@@ -95,12 +100,50 @@ void setup()
 
 void loop()
 {
-    delay(200);
+    // delay(200);
+    Serial.println("loop");
     ledManager();
-    if(maintenanceMode) maintenance();
-    else if(millis()>(time+(getParameter(LOG_INTERVALL)*(1+ecoMode)))){
+    // if(maintenanceMode) maintenance();
+    // else 
+    if(millis()>(time+(getParameter(LOG_INTERVALL)*(1+ecoMode)))){
         standart();
     }
+}
+
+
+// Erreur en paralèlle
+static byte errorTab[2] = {0,0}; // Tableau pour stocker les erreurs
+byte doubleError(){
+  (getParameter(MIN_TEMP_AIR) < temperature && getParameter(MAX_TEMP_AIR) > temperature) ? errorTab[0] += 1 : errorTab[0] = 0;
+  (getParameter(PRESSURE_MIN) < pressure && getParameter(PRESSURE_MAX) > pressure) ? errorTab[2] += 1 : errorTab[2] = 0;
+  
+  if(errorTab[0] > 1 || errorTab[2] > 1){
+    return 1;
+  }
+  return 0;
+}
+
+ISR(TIMER2_COMPA_vect){         // timer compare interrupt service routine
+  static byte timer2Counter = 0;
+  static byte state = 0;
+
+  
+  if (++timer2Counter >= 125) { // 125 * 4 ms = 500 ms
+    timer2Counter = 0;
+    state = (state+1)%2;
+    
+    if(bme.begin(0x76)){
+      state == 1 ? rgbLED.setColorRGB(0, 50, 0, 0) : rgbLED.setColorRGB(0, 0, 50, 0);
+    }
+  }
+
+  if (++timer2Counter == 83 && doubleError()) { // 83 * 4 ms = 332 ms et un capteur abérant !
+    timer2Counter = 0;
+    state = (state+1)%3;
+    if(bme.begin(0x76)){
+      state == 1 ? rgbLED.setColorRGB(0, 50, 0, 0) : rgbLED.setColorRGB(0, 50, 50, 50);
+    }
+  }
 }
 
 //----------Interruptions----------
@@ -112,36 +155,36 @@ void toggleEco() {
   tempTimeBlue = millis();
 }
 
-void toggleMaintenance() {
-  if((millis() - tempTimeRed) >= 5000 && digitalRead(redButton) < 0.5){
-    maintenanceMode = !maintenanceMode;
-  }
-  tempTimeRed = millis();
-}
+// void toggleMaintenance() {
+//   if((millis() - tempTimeRed) >= 5000 && digitalRead(redButton) < 0.5){
+//     maintenanceMode = !maintenanceMode;
+//   }
+//   tempTimeRed = millis();
+// }
 
 //----------Gestions des LEDS----------
 void ledManager(){
-    /*while(!rtc.begin()) {
-      Serial.println("Erreur RTC");
-      rgbLED.setColorRGB(0, 50, 0, 0);
-      delay(500);
-      rgbLED.setColorRGB(0, 0, 0, 100);
-      delay(500);
-    }
-    while(!SD.begin(SDCARD_CS_PIN)) {
-      Serial.println(F("Erreur SD"));
-      rgbLED.setColorRGB(0, 50, 0, 0);
-      delay(333);
-      rgbLED.setColorRGB(0, 50, 50, 50);
-      delay(667);
-    }
-    while (SD.freeClusterCount() <= 1){
-      Serial.println(F("SD Full"));
-      rgbLED.setColorRGB(0, 50, 0, 0);
-      delay(500);
-      rgbLED.setColorRGB(0, 50, 50, 50);
-      delay(500);
-    }*/
+    // while(!rtc.begin()) {
+    //   Serial.println("Erreur RTC");
+    //   rgbLED.setColorRGB(0, 50, 0, 0);
+    //   delay(500);
+    //   rgbLED.setColorRGB(0, 0, 0, 100);
+    //   delay(500);
+    // }
+    // while(!SD.begin(SDCARD_CS_PIN)) {
+    //   Serial.println(F("Erreur SD"));
+    //   rgbLED.setColorRGB(0, 50, 0, 0);
+    //   delay(333);
+    //   rgbLED.setColorRGB(0, 50, 50, 50);
+    //   delay(667);
+    // }
+    // while (SD.freeClusterCount() <= 1){
+    //   Serial.println(F("SD Full"));
+    //   rgbLED.setColorRGB(0, 50, 0, 0);
+    //   delay(500);
+    //   rgbLED.setColorRGB(0, 50, 50, 50);
+    //   delay(500);
+    // }
     
     // while(gps.available()) {
     //   Serial.println(F("Erreur GPS"));
@@ -156,10 +199,11 @@ void ledManager(){
     //   rgbLED.setColorRGB(0, r, g, b);
     // }
 
-    if(maintenanceMode){ // en maintenance
-        rgbLED.setColorRGB(0, 50, 10, 0);
-    }
-    else if(ecoMode){ // en éco
+    // if(maintenanceMode){ // en maintenance
+    //     rgbLED.setColorRGB(0, 50, 10, 0);
+    // }
+    // else 
+    if(ecoMode){ // en éco
         rgbLED.setColorRGB(0, 0, 0, 50);
     }
     else{ // en standard
@@ -182,41 +226,11 @@ void standart(){
 //----------Fonctions pour le mode config----------
 
 //Mode configuration - Exit après 30min sans commande
-void config()
-{
-    rgbLED.setColorRGB(0,70,50,0);
-    String command="";
-    int place;
-    unsigned long timer=millis();
-    while(millis()-timer<1800000){
-        if(Serial.available()<=0) {
-            Serial.println(F("{\"mode\":\"config\"}"));
-            delay(200);
-        }
-        else {  
-            delay(200);
-
-            command=Serial.readStringUntil('=');
-
-            if(command=="senddata") sendCurrentSettings();
-            else if(command=="version") {
-                sendVersion();
-            }
-            else if(command=="reset"){
-                reset();
-                Serial.println(F("{\"mode\":\"config\",\"answer\":\"Reset des paramètres par défaut effectué.\"}"));
-            }
-            else if(command=="put"){
-                place=Serial.readStringUntil(':').toInt();
-                settingTemp=Serial.readStringUntil('.').toInt();
-                EEPROM.put(place,settingTemp);
-                Serial.println(F("{\"mode\":\"config\",\"answer\":\"Valeur du paramètre modifié.\"}"));
-            }
-            Serial.println(F("{\"mode\":\"config\",\"state\":\"next\"}"));
-            timer=millis();
-        }
-    }
-}
+// void config()
+// {
+//     rgbLED.setColorRGB(0,70,50,0);
+//     delay(10000);
+// }
 
 //Vérifie si des paramètres sont sauvegardés dans l'EEPROM et sinon enregistre les paramètres par défaut dedans
 void checkSettings(){
@@ -234,57 +248,9 @@ void reset(){
     }
 }
 
-//Envoyer les paramètres actuels sauvegardés dans l'EEPROM
-void sendCurrentSettings(){
-    Serial.print(F("{\"mode\":\"config\",\"currentSettings\":\""));
-    for(int8_t i=0;i<settings_length;i++){
-            EEPROM.get(i*2,settingTemp);
-            Serial.print(i*2);
-            Serial.print(F("="));
-            Serial.print(settingTemp);
-            if(i+1<settings_length) Serial.print(F(" "));
-        }
-    Serial.println(F("\"}"));
-}
-
-//Envoyer les infos de version et de numéro de lot
-void sendVersion(){
-    Serial.print(F("{\"mode\":\"config\",\"answer\":\"Numéro de version du programme : "));
-    char myChar;
-    for (int8_t k = 0; k < strlen_P(VERSION); k++) {
-        myChar = pgm_read_byte_near(VERSION + k);
-        Serial.print(myChar);
-    }
-    Serial.print(F(". Numéro de lot : "));
-    for (int8_t k = 0; k < strlen_P(NUM_LOT); k++) {
-        myChar = pgm_read_byte_near(NUM_LOT + k);
-        Serial.print(myChar);
-    }
-    Serial.println(F(".\"}"));
-}
-
 //----------Fonctions pour le mode maintenance----------
 
-void maintenance(){
-    getMeasure();
-    Serial.print(F("{\"mode\":\"mntc\""));
-    Serial.print(F(",\"light\":\""));
-    Serial.print(lumin);
-    Serial.print(F(":"));
-    Serial.print((getParameter(LUMIN_LOW) > lumin ? getParameter(LUMIN_HIGH) < lumin ? "Hight" : "Low" : "Medium"));
-    Serial.print(F("\""));
-    printParameter("hydro",humidity);
-    printParameter("pression",pressure);
-    printParameter("temp",temperature);
-    getGPS();
-    Serial.print(F(",\"gps\":[\""));
-    Serial.print(latitude);
-    Serial.print(F("\",\""));
-    Serial.print(longitude);
-    Serial.print(F("\"]"));
-
-    Serial.println(F("}"));
-}
+// void maintenance(){}
 
 void getGPS(){//structure gps
     do
@@ -292,7 +258,7 @@ void getGPS(){//structure gps
         if (gps.available()){
             gpsMessage=gps.readStringUntil('$');
         }
-    } while (!maintenanceMode&&gpsMessage.substring(0,5) != "GPGGA");
+    } while (gpsMessage.substring(0,5) != "GPGGA"); //!maintenanceMode&&
 
 
     if (gpsMessage.substring(0,5) == "GPGGA"){
@@ -310,14 +276,6 @@ void getGPS(){//structure gps
             longitude += " Est"; 
         }
     }
-}
-
-void printParameter(char paramName[],float paramValue)
-{
-    Serial.print(F(",\""));
-    Serial.print(paramName);
-    Serial.print(F("\":"));
-    Serial.print(paramValue);
 }
 
 //----------Récupérer les mesures des capteurs----------
@@ -352,10 +310,28 @@ void uploadSD(){
     myFile.print(F("h"));
     myFile.print(now.minute());
 
-    //Faire une boucle sur les structures
-    int sensorValue = 0;
-    myFile.println(sensorValue);
-    // Serial.println("Write OK");
+    if(getParameter(LUMIN)){
+        myFile.print(F(" "));
+        myFile.print((getParameter(LUMIN_LOW) > lumin ? getParameter(LUMIN_HIGH) < lumin ? "Hight" : "Low" : "Medium"));
+    }
+
+    if(getParameter(TEMP_AIR)){
+        myFile.print(F(" "));
+        myFile.print(temperature);
+    }
+
+    if(getParameter(HYGR)&&(temperature>getParameter(HYGR_MINT)&&temperature<getParameter(HYGR_MAXT))){
+        myFile.print(F(" "));
+        myFile.print(humidity);
+    }
+
+    if(getParameter(PRESSURE)){
+        myFile.print(F(" "));
+        myFile.print(pressure);
+    }
+
+    myFile.print(latitude);
+    myFile.println(longitude);
 
     if(myFile.fileSize() >= getParameter(FILE_MAX_SIZE)){
       byte i = 0;
