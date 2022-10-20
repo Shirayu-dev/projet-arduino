@@ -9,23 +9,24 @@ void setup(){
 }
 
 void loop(){
-  gps.print(message);
-  char carac = 0;
-  while (carac != '\n'){
-    if (gps.available())
-    {
-      carac = gps.read();
-      message = message + carac;
-    }
+  Serial.print("boucle");
+
+  message="";
+
+    while(message.indexOf("GPGGA")==-1){
+        message="";
+        if (gps.available()){
+            message=gps.readStringUntil('$');
+        }
   }
 
-  gps.print(message);
+  Serial.println(message);
   
-  if (message.substring(0,6) == "$GPGGA"){
+  if (message.substring(0,5) == "GPGGA"){
     
     String latitude;   
-    latitude = latitude + message.substring(18,27);   
-    if(message[28] == 'N'){
+    latitude = latitude + message.substring(17,26);   
+    if(message[27] == 'N'){
       latitude = latitude + " Nord";   
     }else{
       latitude = latitude + " Sud";    
@@ -33,8 +34,8 @@ void loop(){
     Serial.println ("Latitude: " + latitude);
 
     String longitude;
-    longitude = longitude + message.substring(30,40);
-    if(message[41] == 'W'){
+    longitude = longitude + message.substring(29,39);
+    if(message[40] == 'W'){
       longitude = longitude + " Ouest";
     }else{
       longitude = longitude + " Est"; 
@@ -42,7 +43,7 @@ void loop(){
     Serial.println ("Longitude: " + longitude);
 
     String altitude;
-    altitude = altitude + message.substring(52,55);
+    altitude = altitude + message.substring(51,54);
     altitude = altitude + " MÃ¨tres";
     Serial.println("Altitude: " + altitude);
   }

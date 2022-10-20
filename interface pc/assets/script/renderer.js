@@ -85,18 +85,6 @@ if (currentMode === "mtnc") {
                         color: gridColor
                     }
                 },
-
-                light: {
-                    position: "left",
-                    min: 0,
-                    max: 1023,
-                    ticks: {
-                        color: textColor
-                    },
-                    grid: {
-                        color: transparentColor
-                    }
-                },
                 hydro: {
                     position: "left",
                     min: 0,
@@ -109,6 +97,18 @@ if (currentMode === "mtnc") {
                         color: transparentColor
                     }
                 },
+                light: {
+                    position: "left",
+                    min: 0,
+                    max: 1023,
+                    ticks: {
+                        color: textColor
+                    },
+                    grid: {
+                        color: transparentColor
+                    }
+                },
+
                 pression: {
                     position: "right",
                     min: 850,
@@ -178,6 +178,17 @@ if (currentMode === "mtnc") {
         chart.update();
     }
 
+    let latitude = 0, longitude = 0, latitudeCo = 0, longitudeCo = 0;
+    let history = [0, 0];
+
+    setInterval(() => {
+        if (history[0] != latitudeCo || history[1] !== longitudeCo) {
+            history[0] = latitudeCo;
+            history[1] = longitudeCo;
+            document.getElementById("map").innerHTML = `<iframe width="100%" height="100%" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://maps.google.com/maps?width=100%25&amp;height=100%25&amp;hl=en&amp;q=${latitudeCo},%20${longitudeCo}&amp;t=k&amp;z=18&amp;ie=UTF8&amp;iwloc=B&amp;output=embed"></iframe>`;
+        }
+    }, 5000);
+
 
     ipc.on("print-data", (event, meteoStationInfo, data) => {
         ["name", "manufacturer", "path", "serialNumber", "version"].forEach(id => {
@@ -205,6 +216,12 @@ if (currentMode === "mtnc") {
         temp.currentValue.innerText = `${data.temp} ${temp.bar.getAttribute("unite")}`;
 
         updateAxis("Température", data.temp);
+
+        latitude = data.gps[0];
+        longitude = data.gps[1];
+
+        latitudeCo = parseInt(latitude.substring(0, 2)) + parseFloat(latitude.substring(2, latitude.length).split(" ")[0]) / 60 * (latitude.endsWith("Nord") ? 1 : -1);
+        longitudeCo = parseInt(longitude.substring(0, 2)) + parseFloat(longitude.substring(2, longitude.length).split(" ")[0]) / 60 * (longitude.endsWith("Est") ? 1 : -1);
     })
 }
 
