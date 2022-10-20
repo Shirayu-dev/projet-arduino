@@ -11,8 +11,8 @@ int LUMIN_HIGH = 768;
 float temperature, humidity, pressure, altitude;
  
 void setup() {
-  Serial.begin(115200);
-  bme.begin(0x76);   // 0x76 = I2C adresse si sur 3.3v
+  Serial.begin(9600);
+  Serial.println(bme.begin(0x76));   // 0x76 = I2C adresse si sur 3.3v
 }
 
 void loop() {
