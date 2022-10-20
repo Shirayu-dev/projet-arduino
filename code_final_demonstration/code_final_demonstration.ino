@@ -1,7 +1,12 @@
-#include <EEPROM.h> //Lire et écrire dans la mémoire EEPROM
-#include <ChainableLED.h> //LED
-#include <Wire.h> //Pour la communication I2C
-#include <Adafruit_BME280.h>
+#include <EEPROM.h> // Lire et écrire dans la mémoire EEPROM
+#include <ChainableLED.h> // LED
+#include <Wire.h> // Pour la communication I2C
+#include <Adafruit_BME280.h> // Capteur
+#include <SoftwareSerial.h> // Pour le GPS
+#include <SPI.h> // Pour la communication SPI
+#include <SdFat.h>  // Pour la communication avec la carte SD
+#include <RTClib.h> // Pour la gestion de l'horloge RTC
+#include <TimeLib.h> // Pour la gestion du temps
 
 //Emplacement dans l'EEPROM de chaque paramètre
 
@@ -23,9 +28,9 @@
 #define checkSettingsExist 30
 
 //Numéro de version du programme
-const char VERSION[6] PROGMEM ="0.0.1";
+const char VERSION[2] PROGMEM ="1";
 //Numéro de lot du module météo
-const char NUM_LOT[11] PROGMEM ="0000000042";
+const char NUM_LOT[3] PROGMEM ="42";
 
 #define settings_length 16
 //Liste des paramètres par défaut
@@ -42,23 +47,40 @@ unsigned long tempTimeRed = 0;
 //Initialisation des différents périphériques
 
 ChainableLED rgbLED(5, 6, 1); //LED
+SoftwareSerial gps(7,8);
+byte SDCARD_CS_PIN  = 4; // Broche CS de la carte SD
+RTC_DS1307 rtc; //Horloge RTC
+SdFat SD;
+SdFile myFile;
 
 //Variables utiles pour les mesures des capteurs
 
 float temperature, humidity, pressure, lumin;
 Adafruit_BME280 bme; // Initialisation du BME pour une utilisation via Bus I2C
+String gpsMessage = "";
+String latitude="";
+String longitude="";
+unsigned long time; // Stocker le temps depuis la dernière mesure
 
 //État des différents modes
 
 byte maintenanceMode = false;
 byte ecoMode = false;
+byte ecoGPS = false;
 
 void setup()
 {
     Serial.begin(9600);
+    gps.begin(9600);
     bme.begin(0x76);   // 0x76 = I2C adresse si sur 3.3v
+    Wire.begin();  //sets up the I2C
     pinMode(redButton, INPUT); // Initialisation bouton rouge
     pinMode(blueButton, INPUT); // Initialisation bouton bleu
+
+    if (!rtc.isrunning()) {
+        rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+        //Serial.println("Horloge du module RTC mise a jour");
+    }
 
     checkSettings();
 
@@ -68,7 +90,7 @@ void setup()
     attachInterrupt(digitalPinToInterrupt(blueButton),toggleEco,CHANGE);
 
     ledManager();
-    
+    time=millis();  
 }
 
 void loop()
@@ -76,6 +98,9 @@ void loop()
     delay(200);
     ledManager();
     if(maintenanceMode) maintenance();
+    else if(millis()>(time+(getParameter(LOG_INTERVALL)*(1+ecoMode)))){
+        standart();
+    }
 }
 
 //----------Interruptions----------
@@ -142,6 +167,18 @@ void ledManager(){
     }
 }
 
+//----------Fonctions pour le mode standart ou eco----------
+
+void standart(){
+    getMeasure();
+    if(ecoMode&&!ecoGPS) {
+        getGPS();
+        ecoGPS=true;
+    } else ecoGPS=false;
+    
+    uploadSD();
+}
+
 //----------Fonctions pour le mode config----------
 
 //Mode configuration - Exit après 30min sans commande
@@ -151,7 +188,6 @@ void config()
     String command="";
     int place;
     unsigned long timer=millis();
-    //char character;
     while(millis()-timer<1800000){
         if(Serial.available()<=0) {
             Serial.println(F("{\"mode\":\"config\"}"));
@@ -232,9 +268,7 @@ void sendVersion(){
 void maintenance(){
     getMeasure();
     Serial.print(F("{\"mode\":\"mntc\""));
-    Serial.print(F(",\""));
-    Serial.print("light");
-    Serial.print(F("\":\""));
+    Serial.print(F(",\"light\":\""));
     Serial.print(lumin);
     Serial.print(F(":"));
     Serial.print((getParameter(LUMIN_LOW) > lumin ? getParameter(LUMIN_HIGH) < lumin ? "Hight" : "Low" : "Medium"));
@@ -242,8 +276,40 @@ void maintenance(){
     printParameter("hydro",humidity);
     printParameter("pression",pressure);
     printParameter("temp",temperature);
-    //printParameter("GPS","[0,0]");
+    getGPS();
+    Serial.print(F(",\"gps\":[\""));
+    Serial.print(latitude);
+    Serial.print(F("\",\""));
+    Serial.print(longitude);
+    Serial.print(F("\"]"));
+
     Serial.println(F("}"));
+}
+
+void getGPS(){//structure gps
+    do
+    {
+        if (gps.available()){
+            gpsMessage=gps.readStringUntil('$');
+        }
+    } while (!maintenanceMode&&gpsMessage.substring(0,5) != "GPGGA");
+
+
+    if (gpsMessage.substring(0,5) == "GPGGA"){
+        latitude = gpsMessage.substring(17,26);
+        if(gpsMessage[27] == 'N'){
+            latitude += " Nord";   
+        } else {
+            latitude += " Sud";    
+        }
+
+        longitude = gpsMessage.substring(29,39);
+        if(gpsMessage[40] == 'W'){
+            longitude += " Ouest";
+        } else {
+            longitude += " Est"; 
+        }
+    }
 }
 
 void printParameter(char paramName[],float paramValue)
@@ -268,4 +334,40 @@ void getMeasure(){
 int16_t getParameter(int id){
     EEPROM.get(id,settingTemp);
     return settingTemp;
+}
+
+//----------Upload SD----------
+void uploadSD(){
+  char fileName[14];
+  DateTime now = rtc.now();
+  sprintf(fileName, "%02d%02d%02d_0.LOG", now.year()%100, now.month(), now.day());
+  myFile.open(fileName, FILE_WRITE);
+  if (myFile) {
+    while (myFile.available()) { // read from the file until there's nothing else in it:
+      myFile.read();
+    }
+
+    //Afficher l'heure
+    myFile.print(now.hour());
+    myFile.print(F("h"));
+    myFile.print(now.minute());
+
+    //Faire une boucle sur les structures
+    int sensorValue = 0;
+    myFile.println(sensorValue);
+    // Serial.println("Write OK");
+
+    if(myFile.fileSize() >= getParameter(FILE_MAX_SIZE)){
+      byte i = 0;
+      do
+      {
+        i++;
+        now = rtc.now();
+        sprintf(fileName, "%02d%02d%02d_%d.LOG", now.year()%100, now.month(), now.day(),i);
+      } while(SD.exists(fileName));
+
+      myFile.rename(fileName);
+    }
+    myFile.close();
+  }
 }
