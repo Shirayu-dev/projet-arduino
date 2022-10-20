@@ -3,7 +3,7 @@ app.commandLine.appendSwitch("disable-renderer-backgrounding");
 const path = require('path');
 const ipc = require('electron').ipcMain;
 const devTools = true;
-const debugMode = false;
+const debugMode = true;
 const detectDisconnect = 3000;
 const timeBetweenCheckPort = 1000;
 

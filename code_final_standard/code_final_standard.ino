@@ -27,11 +27,6 @@
 #define PRESSURE_MAX 28
 #define checkSettingsExist 30
 
-//Numéro de version du programme
-const char VERSION[2] PROGMEM ="1";
-//Numéro de lot du module météo
-const char NUM_LOT[3] PROGMEM ="42";
-
 #define settings_length 16
 //Liste des paramètres par défaut
 const int16_t DEFAULT_SETTINGS[settings_length] PROGMEM ={10,2048,30,1,255,768,1,-10,60,1,0,50,1,850,1080,17438};
@@ -185,37 +180,7 @@ void standart(){
 void config()
 {
     rgbLED.setColorRGB(0,70,50,0);
-    String command="";
-    int place;
-    unsigned long timer=millis();
-    while(millis()-timer<1800000){
-        if(Serial.available()<=0) {
-            Serial.println(F("{\"mode\":\"config\"}"));
-            delay(200);
-        }
-        else {  
-            delay(200);
-
-            command=Serial.readStringUntil('=');
-
-            if(command=="senddata") sendCurrentSettings();
-            else if(command=="version") {
-                sendVersion();
-            }
-            else if(command=="reset"){
-                reset();
-                Serial.println(F("{\"mode\":\"config\",\"answer\":\"Reset des paramètres par défaut effectué.\"}"));
-            }
-            else if(command=="put"){
-                place=Serial.readStringUntil(':').toInt();
-                settingTemp=Serial.readStringUntil('.').toInt();
-                EEPROM.put(place,settingTemp);
-                Serial.println(F("{\"mode\":\"config\",\"answer\":\"Valeur du paramètre modifié.\"}"));
-            }
-            Serial.println(F("{\"mode\":\"config\",\"state\":\"next\"}"));
-            timer=millis();
-        }
-    }
+    delay(10000);
 }
 
 //Vérifie si des paramètres sont sauvegardés dans l'EEPROM et sinon enregistre les paramètres par défaut dedans
@@ -234,57 +199,9 @@ void reset(){
     }
 }
 
-//Envoyer les paramètres actuels sauvegardés dans l'EEPROM
-void sendCurrentSettings(){
-    Serial.print(F("{\"mode\":\"config\",\"currentSettings\":\""));
-    for(int8_t i=0;i<settings_length;i++){
-            EEPROM.get(i*2,settingTemp);
-            Serial.print(i*2);
-            Serial.print(F("="));
-            Serial.print(settingTemp);
-            if(i+1<settings_length) Serial.print(F(" "));
-        }
-    Serial.println(F("\"}"));
-}
-
-//Envoyer les infos de version et de numéro de lot
-void sendVersion(){
-    Serial.print(F("{\"mode\":\"config\",\"answer\":\"Numéro de version du programme : "));
-    char myChar;
-    for (int8_t k = 0; k < strlen_P(VERSION); k++) {
-        myChar = pgm_read_byte_near(VERSION + k);
-        Serial.print(myChar);
-    }
-    Serial.print(F(". Numéro de lot : "));
-    for (int8_t k = 0; k < strlen_P(NUM_LOT); k++) {
-        myChar = pgm_read_byte_near(NUM_LOT + k);
-        Serial.print(myChar);
-    }
-    Serial.println(F(".\"}"));
-}
-
 //----------Fonctions pour le mode maintenance----------
 
-void maintenance(){
-    getMeasure();
-    Serial.print(F("{\"mode\":\"mntc\""));
-    Serial.print(F(",\"light\":\""));
-    Serial.print(lumin);
-    Serial.print(F(":"));
-    Serial.print((getParameter(LUMIN_LOW) > lumin ? getParameter(LUMIN_HIGH) < lumin ? "Hight" : "Low" : "Medium"));
-    Serial.print(F("\""));
-    printParameter("hydro",humidity);
-    printParameter("pression",pressure);
-    printParameter("temp",temperature);
-    getGPS();
-    Serial.print(F(",\"gps\":[\""));
-    Serial.print(latitude);
-    Serial.print(F("\",\""));
-    Serial.print(longitude);
-    Serial.print(F("\"]"));
-
-    Serial.println(F("}"));
-}
+void maintenance(){}
 
 void getGPS(){//structure gps
     do
@@ -310,14 +227,6 @@ void getGPS(){//structure gps
             longitude += " Est"; 
         }
     }
-}
-
-void printParameter(char paramName[],float paramValue)
-{
-    Serial.print(F(",\""));
-    Serial.print(paramName);
-    Serial.print(F("\":"));
-    Serial.print(paramValue);
 }
 
 //----------Récupérer les mesures des capteurs----------

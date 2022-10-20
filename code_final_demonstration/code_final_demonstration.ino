@@ -60,27 +60,19 @@ Adafruit_BME280 bme; // Initialisation du BME pour une utilisation via Bus I2C
 String gpsMessage = "";
 String latitude="";
 String longitude="";
-unsigned long time; // Stocker le temps depuis la dernière mesure
 
 //État des différents modes
 
 byte maintenanceMode = false;
 byte ecoMode = false;
-byte ecoGPS = false;
 
 void setup()
 {
     Serial.begin(9600);
     gps.begin(9600);
     bme.begin(0x76);   // 0x76 = I2C adresse si sur 3.3v
-    Wire.begin();  //sets up the I2C
     pinMode(redButton, INPUT); // Initialisation bouton rouge
     pinMode(blueButton, INPUT); // Initialisation bouton bleu
-
-    if (!rtc.isrunning()) {
-        rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-        //Serial.println("Horloge du module RTC mise a jour");
-    }
 
     checkSettings();
 
@@ -90,17 +82,12 @@ void setup()
     attachInterrupt(digitalPinToInterrupt(blueButton),toggleEco,CHANGE);
 
     ledManager();
-    time=millis();  
 }
 
 void loop()
 {
-    delay(200);
     ledManager();
     if(maintenanceMode) maintenance();
-    else if(millis()>(time+(getParameter(LOG_INTERVALL)*(1+ecoMode)))){
-        standart();
-    }
 }
 
 //----------Interruptions----------
@@ -121,7 +108,7 @@ void toggleMaintenance() {
 
 //----------Gestions des LEDS----------
 void ledManager(){
-    /*while(!rtc.begin()) {
+    while(!rtc.begin()) {
       Serial.println("Erreur RTC");
       rgbLED.setColorRGB(0, 50, 0, 0);
       delay(500);
@@ -135,13 +122,6 @@ void ledManager(){
       rgbLED.setColorRGB(0, 50, 50, 50);
       delay(667);
     }
-    while (SD.freeClusterCount() <= 1){
-      Serial.println(F("SD Full"));
-      rgbLED.setColorRGB(0, 50, 0, 0);
-      delay(500);
-      rgbLED.setColorRGB(0, 50, 50, 50);
-      delay(500);
-    }*/
     
     // while(gps.available()) {
     //   Serial.println(F("Erreur GPS"));
@@ -165,18 +145,6 @@ void ledManager(){
     else{ // en standard
         rgbLED.setColorRGB(0, 0, 50, 0);
     }
-}
-
-//----------Fonctions pour le mode standart ou eco----------
-
-void standart(){
-    getMeasure();
-    if(ecoMode&&!ecoGPS) {
-        getGPS();
-        ecoGPS=true;
-    } else ecoGPS=false;
-    
-    uploadSD();
 }
 
 //----------Fonctions pour le mode config----------
@@ -287,12 +255,10 @@ void maintenance(){
 }
 
 void getGPS(){//structure gps
-    do
-    {
-        if (gps.available()){
-            gpsMessage=gps.readStringUntil('$');
-        }
-    } while (!maintenanceMode&&gpsMessage.substring(0,5) != "GPGGA");
+
+    if (gps.available()){
+        gpsMessage=gps.readStringUntil('$');
+    }
 
 
     if (gpsMessage.substring(0,5) == "GPGGA"){
@@ -334,40 +300,4 @@ void getMeasure(){
 int16_t getParameter(int id){
     EEPROM.get(id,settingTemp);
     return settingTemp;
-}
-
-//----------Upload SD----------
-void uploadSD(){
-  char fileName[14];
-  DateTime now = rtc.now();
-  sprintf(fileName, "%02d%02d%02d_0.LOG", now.year()%100, now.month(), now.day());
-  myFile.open(fileName, FILE_WRITE);
-  if (myFile) {
-    while (myFile.available()) { // read from the file until there's nothing else in it:
-      myFile.read();
-    }
-
-    //Afficher l'heure
-    myFile.print(now.hour());
-    myFile.print(F("h"));
-    myFile.print(now.minute());
-
-    //Faire une boucle sur les structures
-    int sensorValue = 0;
-    myFile.println(sensorValue);
-    // Serial.println("Write OK");
-
-    if(myFile.fileSize() >= getParameter(FILE_MAX_SIZE)){
-      byte i = 0;
-      do
-      {
-        i++;
-        now = rtc.now();
-        sprintf(fileName, "%02d%02d%02d_%d.LOG", now.year()%100, now.month(), now.day(),i);
-      } while(SD.exists(fileName));
-
-      myFile.rename(fileName);
-    }
-    myFile.close();
-  }
 }
