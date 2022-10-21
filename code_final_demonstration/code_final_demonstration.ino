@@ -274,6 +274,11 @@ void getGPS(){//structure gps
         } else {
             longitude += " Est"; 
         }
+
+        if(latitude.indexOf('\n')!=-1||longitude.indexOf('\n')!=-1){
+            latitude="";
+            longitude="";
+        }
     }
 }
 
