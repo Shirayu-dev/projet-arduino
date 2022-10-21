@@ -45,8 +45,8 @@ byte MIN_TEMP_AIR, MAX_TEMP_AIR, MIN_HUMIDITY, MAX_HUMIDITY, PRESSURE_MIN, MAX_P
 
 static byte errorTab[2] = {0,0}; // Tableau pour stocker les erreurs
 byte doubleError(){
-  (MIN_TEMP_AIR < temperature && MAX_TEMP_AIR > temperature) ? errorTab[0] += 1 : 0;
-  (PRESSURE_MIN < pressure && MAX_PRESSURE > pressure) ? errorTab[2] += 1 : 0;
+  (MIN_TEMP_AIR < temperature && MAX_TEMP_AIR > temperature) ? errorTab[0] += 1 : errorTab[0] = 0;
+  (PRESSURE_MIN < pressure && MAX_PRESSURE > pressure) ? errorTab[2] += 1 : errorTab[2] = 0;
   
   if(errorTab[0] > 1 || errorTab[2] > 1){
     return 1;
