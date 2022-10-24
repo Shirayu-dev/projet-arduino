@@ -100,12 +100,9 @@ void setup()
 
 void loop()
 {
-    // delay(200);
-    Serial.println("loop");
     ledManager();
-    // if(maintenanceMode) maintenance();
-    // else 
-    if(millis()>(time+(getParameter(LOG_INTERVALL)*(1+ecoMode)))){
+    if(maintenanceMode) maintenance();
+    else if(millis()>(time+(getParameter(LOG_INTERVALL)*(1+ecoMode)))){
         standart();
     }
 }
@@ -126,7 +123,6 @@ byte doubleError(){
 ISR(TIMER2_COMPA_vect){         // timer compare interrupt service routine
   static byte timer2Counter = 0;
   static byte state = 0;
-
   
   if (++timer2Counter >= 125) { // 125 * 4 ms = 500 ms
     timer2Counter = 0;

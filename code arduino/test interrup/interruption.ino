@@ -37,6 +37,7 @@ void setup() {
   pinMode(blueButton, INPUT); // Initialisation bouton bleu
   attachInterrupt(digitalPinToInterrupt(redButton),toggleMaintenance,CHANGE);
   attachInterrupt(digitalPinToInterrupt(blueButton),toggleEco,CHANGE);
+  
 }
 
 void loop() {
