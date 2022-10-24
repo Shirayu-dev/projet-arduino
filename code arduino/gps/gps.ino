@@ -1,6 +1,6 @@
 #include <SoftwareSerial.h >
 SoftwareSerial gps(7,8);
-
+// test 2
 String message = "";
 
 void setup(){
